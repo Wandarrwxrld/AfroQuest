@@ -1,0 +1,2 @@
+# AfroQuest
+Here’s a version kept to **320 characters or less**:  A modern, secure, database-driven e-commerce web app for Afroquest. Features product browsing, search, filters, variants, cart, wishlist, authentication, email verification, secure checkout, inventory management, promotions, bundles, order tracking, admin management, and strong security controls
