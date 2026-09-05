@@ -20,6 +20,8 @@ import OrderConfirmation from './pages/OrderConfirmation'
 import About from './pages/About'
 import Contact from './pages/Contact'
 import AdminDashboard from './pages/AdminDashboard'
+import AdminMfaSetup from './pages/AdminMfaSetup'
+import MfaChallenge from './pages/MfaChallenge'
 
 export default function App() {
   return (
@@ -46,7 +48,9 @@ export default function App() {
               <Route path="/cart" element={<RequireAuth><Cart /></RequireAuth>} />
               <Route path="/checkout" element={<RequireAuth><Checkout /></RequireAuth>} />
               <Route path="/order-confirmation/:orderId" element={<RequireAuth><OrderConfirmation /></RequireAuth>} />
+              <Route path="/mfa-challenge" element={<RequireAuth><MfaChallenge /></RequireAuth>} />
               <Route path="/admin" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
+              <Route path="/admin/mfa-setup" element={<RequireAuth><AdminMfaSetup /></RequireAuth>} />
             </Routes>
           </main>
         </BrowserRouter>
