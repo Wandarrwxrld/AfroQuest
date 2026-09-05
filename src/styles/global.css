@@ -1,0 +1,32 @@
+:root {
+  --color-primary: #E5001C;
+  --color-primary-dark: #C91B31;
+  --color-accent: #F56419;
+  --color-dark: #1E1B26;
+  --color-bg: #FAFAF8;
+  --color-text: #1A1A1A;
+  --color-text-muted: #6B6B6B;
+  --color-border: #E5E3DC;
+  --color-success: #1D9E75;
+  --color-danger: #A32D2D;
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--color-bg); color: var(--color-text); }
+.site-main { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 3rem; min-height: 60vh; }
+a { color: inherit; }
+.btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; border-radius: var(--radius); font-weight: 600; font-size: 0.95rem; border: none; cursor: pointer; text-decoration: none; }
+.btn-primary { background: var(--color-primary); color: white; }
+.btn-primary:hover { background: var(--color-primary-dark); }
+.btn-secondary { background: var(--color-dark); color: white; }
+.btn-outline { background: transparent; color: var(--color-dark); border: 1.5px solid var(--color-border); }
+.card { background: white; border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; }
+.price { font-weight: 700; }
+.badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+.badge-instock { background: #E1F5EE; color: var(--color-success); }
+.badge-lowstock { background: #FAEEDA; color: #854F0B; }
+.badge-outofstock { background: #FCEBEB; color: var(--color-danger); }
+.grid-products { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; }
+.section { padding: 2rem 0; }
+.text-muted { color: var(--color-text-muted); }
