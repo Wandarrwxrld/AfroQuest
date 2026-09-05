@@ -1,14 +1,38 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 export default function Register() {
-  const navigate = useNavigate()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [registered, setRegistered] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const [resendMessage, setResendMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const timer = setInterval(() => setResendCooldown((s) => s - 1), 1000)
+    return () => clearInterval(timer)
+  }, [resendCooldown])
+
+  async function handleResend() {
+    if (resendCooldown > 0) return
+    setResendMessage(null)
+    // Spec: "Resend-verification must be rate-limited." Client-side cooldown
+    // here is a real, immediate protection against accidental spam-clicking;
+    // Supabase's own backend rate limits on resend also apply underneath
+    // this regardless of what the client does.
+    setResendCooldown(60)
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/verify-email` },
+    })
+    setResendMessage(error ? 'Could not resend right now. Try again shortly.' : 'Verification email resent.')
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -17,14 +41,40 @@ export default function Register() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: `${window.location.origin}/verify-email`,
+      },
     })
     setLoading(false)
     if (error) {
       setError(error.message)
       return
     }
-    navigate('/')
+    // Spec: email verification is required after account creation.
+    // If email confirmation is OFF in the Supabase project (common
+    // during early development), signUp already returns a live session
+    // and the account works immediately - this success screen still
+    // shows either way since Supabase doesn't distinguish the two cases
+    // in the response.
+    setRegistered(true)
+  }
+
+  if (registered) {
+    return (
+      <div className="section" style={{ maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
+        <h1>Check your email</h1>
+        <p className="text-muted">
+          We've sent a verification link to <strong>{email}</strong>. Click it to activate your account, then log in.
+        </p>
+        <button className="btn btn-outline" onClick={handleResend} disabled={resendCooldown > 0} style={{ marginTop: '1rem' }}>
+          {resendCooldown > 0 ? `Resend available in ${resendCooldown}s` : 'Resend verification email'}
+        </button>
+        {resendMessage && <p className="text-muted" style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>{resendMessage}</p>}
+        <br />
+        <Link to="/login" className="btn btn-outline" style={{ marginTop: '0.75rem' }}>Go to login</Link>
+      </div>
+    )
   }
 
   return (

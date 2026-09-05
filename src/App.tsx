@@ -9,6 +9,9 @@ import ProductDetails from './pages/ProductDetails'
 import SearchResults from './pages/SearchResults'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
+import VerifyEmail from './pages/VerifyEmail'
 import MyAccount from './pages/MyAccount'
 import Wishlist from './pages/Wishlist'
 import Cart from './pages/Cart'
@@ -33,6 +36,9 @@ export default function App() {
               <Route path="/search" element={<SearchResults />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/account" element={<RequireAuth><MyAccount /></RequireAuth>} />
