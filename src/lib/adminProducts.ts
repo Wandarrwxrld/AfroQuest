@@ -37,15 +37,22 @@ function slugify(name: string): string {
 export async function createProduct(input: NewProductInput): Promise<Product> {
   const slug = `${slugify(input.name)}-${Date.now().toString(36)}`
 
-  // KNOWN ISSUE: this insert's payload type collapses to `never` under strict
-  // checking despite Database/GenericSchema verified structurally correct
-  // against postgrest-js source. Root cause not yet found after significant
-  // investigation (isolated test files with equivalent inserts compile clean,
-  // ruling out schema shape, client wiring, and duplicate-package causes).
-  // Escape-hatched here to unblock the build; runtime behavior is correct
-  // and RLS still enforces real safety - this is a lost compile-time check
-  // on this one call, not a security gap. Revisit before Block 5 (security
-  // hardening) so strict typing is fully back before that pass is called done.
+  // KNOWN ISSUE (investigated at length, unresolved): this insert's payload
+  // type collapses to `never` under tsc -b project-reference build mode in
+  // THIS file specifically. Ruled out with real tests: schema/GenericSchema
+  // shape (verified against postgrest-js source - correct), client wiring
+  // (isolated createClient<Database>() calls work), duplicate package installs
+  // (only one @supabase/supabase-js present), missing .select() (present here),
+  // cross-file pollution (fails even with imageStaging.ts removed from the
+  // build), stale incremental cache (fails on --force clean rebuild), and
+  // TypeScript version (fails identically on pinned stable 5.7.3, not just
+  // the project's 7.0.2). An exact byte-for-byte copy of this file's content
+  // in a new file in the same directory reproduces the failure; the same
+  // code as a standalone plain `tsc --noEmit` single-file check does not.
+  // The real variable is something about full project-reference build mode
+  // (tsc -b) specifically, not yet pinned down. Runtime behavior is correct
+  // and RLS still enforces real safety - this is a lost compile-time check,
+  // not a security gap. Revisit before Block 5 (security hardening).
   const { data, error } = await (supabase as any)
     .from('products')
     .insert({
@@ -78,7 +85,7 @@ export async function fetchRecentProductsForAdmin(): Promise<Product[]> {
 }
 
 export async function setProductActive(productId: string, isActive: boolean): Promise<void> {
-  // See KNOWN ISSUE note in createProduct above - same unresolved type collapse.
+  // Same unresolved tsc -b type collapse documented in createProduct above.
   const { error } = await (supabase as any).from('products').update({ is_active: isActive }).eq('id', productId).select()
   if (error) throw error
 }
