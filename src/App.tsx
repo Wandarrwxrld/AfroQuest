@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import { AuthProvider } from './lib/AuthContext'
 import { CartProvider } from './lib/CartContext'
 import { RequireAuth, RequireAdmin } from './components/RequireAuth'
@@ -23,36 +24,61 @@ import AdminDashboard from './pages/AdminDashboard'
 import AdminMfaSetup from './pages/AdminMfaSetup'
 import MfaChallenge from './pages/MfaChallenge'
 
+/** One consistent, deliberate transition on every route change - a soft
+ * fade with a small vertical settle - rather than different effects
+ * per page. Wrapping each Route element (not <Routes> itself) so pages
+ * that need their own full-width layout (Home) aren't forced into a
+ * constrained container. */
+function PageTransition({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.22, ease: 'easeInOut' }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+function AnimatedRoutes() {
+  const location = useLocation()
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageTransition><Home /></PageTransition>} />
+        <Route path="/shop" element={<PageTransition><div className="site-main"><Shop /></div></PageTransition>} />
+        <Route path="/shop/:category" element={<PageTransition><div className="site-main"><Shop /></div></PageTransition>} />
+        <Route path="/product/:slug" element={<PageTransition><div className="site-main"><ProductDetails /></div></PageTransition>} />
+        <Route path="/search" element={<PageTransition><div className="site-main"><SearchResults /></div></PageTransition>} />
+        <Route path="/login" element={<PageTransition><div className="site-main"><Login /></div></PageTransition>} />
+        <Route path="/register" element={<PageTransition><div className="site-main"><Register /></div></PageTransition>} />
+        <Route path="/forgot-password" element={<PageTransition><div className="site-main"><ForgotPassword /></div></PageTransition>} />
+        <Route path="/reset-password" element={<PageTransition><div className="site-main"><ResetPassword /></div></PageTransition>} />
+        <Route path="/verify-email" element={<PageTransition><div className="site-main"><VerifyEmail /></div></PageTransition>} />
+        <Route path="/about" element={<PageTransition><div className="site-main"><About /></div></PageTransition>} />
+        <Route path="/contact" element={<PageTransition><div className="site-main"><Contact /></div></PageTransition>} />
+        <Route path="/account" element={<RequireAuth><PageTransition><div className="site-main"><MyAccount /></div></PageTransition></RequireAuth>} />
+        <Route path="/wishlist" element={<RequireAuth><PageTransition><div className="site-main"><Wishlist /></div></PageTransition></RequireAuth>} />
+        <Route path="/cart" element={<RequireAuth><PageTransition><div className="site-main"><Cart /></div></PageTransition></RequireAuth>} />
+        <Route path="/checkout" element={<RequireAuth><PageTransition><div className="site-main"><Checkout /></div></PageTransition></RequireAuth>} />
+        <Route path="/order-confirmation/:orderId" element={<RequireAuth><PageTransition><div className="site-main"><OrderConfirmation /></div></PageTransition></RequireAuth>} />
+        <Route path="/mfa-challenge" element={<RequireAuth><PageTransition><div className="site-main"><MfaChallenge /></div></PageTransition></RequireAuth>} />
+        <Route path="/admin" element={<RequireAdmin><PageTransition><div className="site-main"><AdminDashboard /></div></PageTransition></RequireAdmin>} />
+        <Route path="/admin/mfa-setup" element={<RequireAuth><PageTransition><div className="site-main"><AdminMfaSetup /></div></PageTransition></RequireAuth>} />
+      </Routes>
+    </AnimatePresence>
+  )
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <CartProvider>
         <BrowserRouter>
           <Header />
-          <main className="site-main">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/shop" element={<Shop />} />
-              <Route path="/shop/:category" element={<Shop />} />
-              <Route path="/product/:slug" element={<ProductDetails />} />
-              <Route path="/search" element={<SearchResults />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/verify-email" element={<VerifyEmail />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/account" element={<RequireAuth><MyAccount /></RequireAuth>} />
-              <Route path="/wishlist" element={<RequireAuth><Wishlist /></RequireAuth>} />
-              <Route path="/cart" element={<RequireAuth><Cart /></RequireAuth>} />
-              <Route path="/checkout" element={<RequireAuth><Checkout /></RequireAuth>} />
-              <Route path="/order-confirmation/:orderId" element={<RequireAuth><OrderConfirmation /></RequireAuth>} />
-              <Route path="/mfa-challenge" element={<RequireAuth><MfaChallenge /></RequireAuth>} />
-              <Route path="/admin" element={<RequireAdmin><AdminDashboard /></RequireAdmin>} />
-              <Route path="/admin/mfa-setup" element={<RequireAuth><AdminMfaSetup /></RequireAuth>} />
-            </Routes>
-          </main>
+          <AnimatedRoutes />
         </BrowserRouter>
       </CartProvider>
     </AuthProvider>

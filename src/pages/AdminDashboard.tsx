@@ -8,6 +8,7 @@ import {
   type StagedImage,
 } from '../lib/imageStaging'
 import { fetchCategoryTree, createProduct, fetchRecentProductsForAdmin, setProductActive } from '../lib/adminProducts'
+import { SkeletonBox } from '../components/Skeleton'
 import type { Category, Product, ProductType } from '../types/database'
 
 export default function AdminDashboard() {
@@ -155,7 +156,9 @@ export default function AdminDashboard() {
         </h2>
 
         {loading ? (
-          <p className="text-muted">Loading...</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '0.75rem' }}>
+            {Array.from({ length: 6 }).map((_, i) => <SkeletonBox key={i} height={0} style={{ aspectRatio: '1' }} />)}
+          </div>
         ) : staged.length === 0 ? (
           <p className="text-muted">No unassigned photos. Upload some above.</p>
         ) : (

@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
 import { useCart } from '../lib/CartContext'
 import { resolveProductImageUrl } from '../lib/products'
+import { CartRowsSkeleton } from '../components/Skeleton'
 
 export default function Cart() {
   const { items, loading, updateQuantity, removeItem } = useCart()
 
-  if (loading) return <div className="section"><p className="text-muted">Loading cart...</p></div>
+  if (loading) return <div className="section"><h1>Your cart</h1><CartRowsSkeleton /></div>
 
   if (items.length === 0) {
     return (
