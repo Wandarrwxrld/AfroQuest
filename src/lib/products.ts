@@ -1,0 +1,86 @@
+import { supabase } from './supabase'
+import type { ProductWithDetails, SimpleInventory } from '../types/database'
+
+const PLACEHOLDER_IMAGE = '/placeholder-product.svg'
+
+export function resolveProductImageUrl(storagePath: string | null | undefined): string {
+  if (!storagePath) return PLACEHOLDER_IMAGE
+  const { data } = supabase.storage.from('product-images').getPublicUrl(storagePath)
+  return data.publicUrl
+}
+
+/** Active products for the Shop grid, with category, images, and
+ *  variants+inventory joined so stock badges compute without a second
+ *  round trip. Only surfaces is_active=true rows - draft products created
+ *  by admin (pre-photo-assignment) stay hidden from customers. */
+export async function fetchActiveProducts(categorySlug?: string): Promise<ProductWithDetails[]> {
+  let query = supabase
+    .from('products')
+    .select(
+      `*,
+      category:categories(*),
+      images:product_images(*),
+      variants:product_variants(*, inventory(*))`
+    )
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+
+  if (categorySlug) {
+    const { data: cat } = await (supabase as any).from('categories').select('id').eq('slug', categorySlug).maybeSingle()
+    if (cat) query = query.eq('category_id', cat.id)
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+  return (data ?? []) as unknown as ProductWithDetails[]
+}
+
+export async function fetchProductBySlug(slug: string): Promise<ProductWithDetails> {
+  const { data, error } = await supabase
+    .from('products')
+    .select(
+      `*,
+      category:categories(*),
+      images:product_images(*),
+      variants:product_variants(*, inventory(*))`
+    )
+    .eq('slug', slug)
+    .eq('is_active', true)
+    .single()
+
+  if (error) throw error
+  return data as unknown as ProductWithDetails
+}
+
+/** Stock for a `simple` product (gloves, masks, etc.) - lives in
+ *  simple_inventory, not the variant/inventory join above. */
+export async function fetchSimpleStock(productId: string): Promise<SimpleInventory | null> {
+  const { data, error } = await supabase.from('simple_inventory').select('*').eq('product_id', productId).maybeSingle()
+  if (error) throw error
+  return data
+}
+
+export interface StockStatus {
+  label: 'In stock' | 'Low stock' | 'Out of stock'
+  className: 'badge-instock' | 'badge-lowstock' | 'badge-outofstock'
+  totalQty: number
+}
+
+/** Total stock across all variants (or simple_inventory for simple
+ *  products), used for the in-stock/low-stock/out-of-stock badge and to
+ *  gate add-to-cart. */
+export function computeStockStatus(product: ProductWithDetails, simpleQty?: number): StockStatus {
+  const totalQty =
+    product.product_type === 'simple'
+      ? simpleQty ?? 0
+      : product.variants.reduce((sum, v) => sum + (v.inventory?.quantity ?? 0), 0)
+
+  const threshold =
+    product.product_type === 'simple'
+      ? 5
+      : Math.max(...product.variants.map((v) => v.inventory?.low_stock_threshold ?? 5), 5)
+
+  if (totalQty <= 0) return { label: 'Out of stock', className: 'badge-outofstock', totalQty }
+  if (totalQty <= threshold) return { label: 'Low stock', className: 'badge-lowstock', totalQty }
+  return { label: 'In stock', className: 'badge-instock', totalQty }
+}

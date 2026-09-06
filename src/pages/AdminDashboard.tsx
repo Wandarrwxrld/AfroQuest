@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import {
   listStagedImages,
   uploadStagedImage,
@@ -125,6 +126,9 @@ export default function AdminDashboard() {
   return (
     <div className="section">
       <h1>Admin Dashboard</h1>
+      <p style={{ marginBottom: '1.5rem' }}>
+        <Link to="/admin/mfa-setup" className="text-muted">Set up two-factor authentication →</Link>
+      </p>
       {error && <p style={{ color: 'var(--color-danger)' }}>{error}</p>}
 
       {/* === Upload === */}
