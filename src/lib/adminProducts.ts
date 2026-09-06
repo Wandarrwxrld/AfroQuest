@@ -89,3 +89,41 @@ export async function setProductActive(productId: string, isActive: boolean): Pr
   const { error } = await (supabase as any).from('products').update({ is_active: isActive }).eq('id', productId).select()
   if (error) throw error
 }
+
+/** Counts how many completed order line items reference this product
+ *  (directly for simple products, via its variants for apparel_footwear).
+ *  Used to warn admin before a permanent delete - the order itself is
+ *  never affected (order_items stores a name/price snapshot, not a live
+ *  reference), but it's worth knowing before removing a product that has
+ *  real sales history. */
+export async function countOrdersForProduct(productId: string): Promise<number> {
+  const { count: directCount } = await supabase
+    .from('order_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('product_id', productId)
+
+  const { data: variants } = await (supabase as any).from('product_variants').select('id').eq('product_id', productId)
+  const variantIds = (variants ?? []).map((v: any) => v.id)
+
+  let variantCount = 0
+  if (variantIds.length > 0) {
+    const { count } = await supabase
+      .from('order_items')
+      .select('id', { count: 'exact', head: true })
+      .in('variant_id', variantIds)
+    variantCount = count ?? 0
+  }
+
+  return (directCount ?? 0) + variantCount
+}
+
+/** Permanently deletes a product. Cascades in the database remove its
+ *  variants, inventory/simple_inventory rows, and product_images links -
+ *  nothing orphaned is left behind. Past orders are unaffected: order_items
+ *  stores product_name/unit_price as a snapshot at time of purchase, not a
+ *  live foreign key that would break. This is irreversible - the calling
+ *  UI is responsible for confirming with the admin first. */
+export async function deleteProductPermanently(productId: string): Promise<void> {
+  const { error } = await supabase.from('products').delete().eq('id', productId)
+  if (error) throw error
+}

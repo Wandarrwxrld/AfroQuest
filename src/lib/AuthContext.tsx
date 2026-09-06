@@ -24,6 +24,20 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
+/** Records a real login/logout event for the audit trail, but only for
+ *  admin-tier accounts - customer traffic doesn't need this kind of
+ *  internal accountability log. Fire-and-forget: a logging failure
+ *  should never block the person from actually signing in or out. */
+async function recordAdminLoginEvent(userId: string, eventType: 'login' | 'logout') {
+  try {
+    const { data: profile } = await (supabase as any).from('profiles').select('role').eq('id', userId).single()
+    if (!profile?.role || !ADMIN_TIER_ROLES.includes(profile.role)) return
+    await (supabase as any).from('admin_login_events').insert({ admin_id: userId, event_type: eventType })
+  } catch {
+    // Intentionally swallowed - see doc comment above.
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -36,8 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session)
       setLoading(false)
     })
-    const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    const { data: listener } = supabase.auth.onAuthStateChange((event, s) => {
+      setSession(s)
+      if (event === 'SIGNED_IN' && s?.user) recordAdminLoginEvent(s.user.id, 'login')
+      if (event === 'SIGNED_OUT' && session?.user) recordAdminLoginEvent(session.user.id, 'logout')
+    })
     return () => listener.subscription.unsubscribe()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {

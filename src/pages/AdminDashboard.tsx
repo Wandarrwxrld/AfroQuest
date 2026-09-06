@@ -7,7 +7,7 @@ import {
   discardStagedImage,
   type StagedImage,
 } from '../lib/imageStaging'
-import { fetchCategoryTree, createProduct, fetchRecentProductsForAdmin, setProductActive } from '../lib/adminProducts'
+import { fetchCategoryTree, createProduct, fetchRecentProductsForAdmin, setProductActive, countOrdersForProduct, deleteProductPermanently } from '../lib/adminProducts'
 import { SkeletonBox } from '../components/Skeleton'
 import type { Category, Product, ProductType } from '../types/database'
 
@@ -121,6 +121,24 @@ export default function AdminDashboard() {
       await refresh()
     } catch (e: any) {
       setError(e.message ?? 'Failed to discard image')
+    }
+  }
+
+  async function handleDeleteProduct(productId: string, productName: string) {
+    setError(null)
+    try {
+      const orderCount = await countOrdersForProduct(productId)
+      const warning =
+        orderCount > 0
+          ? `"${productName}" has been part of ${orderCount} completed order line${orderCount === 1 ? '' : 's'}. Those orders will be unaffected - only the product itself is removed. `
+          : ''
+      const confirmed = confirm(`${warning}Permanently delete "${productName}"? This cannot be undone.`)
+      if (!confirmed) return
+
+      await deleteProductPermanently(productId)
+      await refresh()
+    } catch (e: any) {
+      setError(e.message ?? 'Failed to delete product')
     }
   }
 
@@ -242,12 +260,21 @@ export default function AdminDashboard() {
             {products.map((p) => (
               <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--color-border)' }}>
                 <span>{p.name} <span className="text-muted">({p.product_type})</span></span>
-                <button
-                  className="btn btn-outline"
-                  onClick={async () => { await setProductActive(p.id, !p.is_active); refresh() }}
-                >
-                  {p.is_active ? 'Deactivate' : 'Activate'}
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    className="btn btn-outline"
+                    onClick={async () => { await setProductActive(p.id, !p.is_active); refresh() }}
+                  >
+                    {p.is_active ? 'Deactivate' : 'Activate'}
+                  </button>
+                  <button
+                    className="btn btn-outline"
+                    style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}
+                    onClick={() => handleDeleteProduct(p.id, p.name)}
+                  >
+                    Delete permanently
+                  </button>
+                </div>
               </div>
             ))}
           </div>
