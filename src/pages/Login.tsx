@@ -19,7 +19,7 @@ export default function Login() {
     setLoading(true)
     setError(null)
     setNeedsVerification(false)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
     if (error) {
       // Supabase returns a distinct code when the account exists but
@@ -35,7 +35,35 @@ export default function Login() {
       }
       return
     }
-    navigate('/')
+
+    // Role-based redirect: the database decides where this account goes,
+    // the person never picks a role at login (that would let anyone type
+    // "admin" and self-select privileges - role is only ever set server-
+    // side by a super_admin). We read the real profile row right here
+    // rather than trust any client-side state that might be stale.
+    const userId = data.user?.id
+    // Same unresolved tsc -b type collapse documented in adminProducts.ts.
+    const { data: profile } = userId
+      ? await (supabase as any).from('profiles').select('role').eq('id', userId).single()
+      : { data: null }
+
+    const ADMIN_TIER_ROLES = ['admin', 'super_admin', 'order_admin', 'inventory_admin', 'content_admin']
+    const isAdminAccount = !!profile?.role && ADMIN_TIER_ROLES.includes(profile.role)
+
+    if (isAdminAccount) {
+      // If this admin has MFA enrolled, aal will still be aal1 right after
+      // password login - send them to the challenge first. RequireAdmin
+      // enforces this too, but redirecting straight there avoids a visible
+      // bounce through the dashboard route.
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+      if (aal && aal.currentLevel !== aal.nextLevel) {
+        navigate('/mfa-challenge')
+      } else {
+        navigate('/admin')
+      }
+    } else {
+      navigate('/')
+    }
   }
 
   async function handleResend() {
