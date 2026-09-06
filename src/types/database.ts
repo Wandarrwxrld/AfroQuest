@@ -36,6 +36,7 @@ export interface Product {
   base_price: number
   product_type: ProductType
   is_active: boolean
+  features: string[]
   created_at: string
   updated_at: string
 }
@@ -52,6 +53,9 @@ export interface ProductVariant {
   id: string
   product_id: string
   size: string | null
+  size_uk: string | null
+  size_eu: string | null
+  size_us: string | null
   color: string | null
   sku: string | null
   price_override: number | null
