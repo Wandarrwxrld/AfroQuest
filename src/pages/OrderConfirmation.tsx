@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { SkeletonBox } from '../components/Skeleton'
 import type { Order, OrderItem } from '../types/database'
 
 export default function OrderConfirmation() {
@@ -25,7 +26,14 @@ export default function OrderConfirmation() {
       .finally(() => setLoading(false))
   }, [orderId])
 
-  if (loading) return <div className="section"><p className="text-muted">Loading...</p></div>
+  if (loading) return (
+    <div className="section" style={{ maxWidth: 520, margin: '0 auto' }}>
+      <SkeletonBox width="60%" height="1.8rem" style={{ marginBottom: '1.5rem' }} />
+      <SkeletonBox height="1rem" style={{ marginBottom: '0.5rem' }} />
+      <SkeletonBox height="1rem" width="80%" style={{ marginBottom: '1.5rem' }} />
+      <SkeletonBox height="4rem" />
+    </div>
+  )
   if (error || !order) {
     return (
       <div className="section">

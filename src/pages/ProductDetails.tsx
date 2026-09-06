@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { fetchProductBySlug, fetchSimpleStock, resolveProductImageUrl, computeStockStatus } from '../lib/products'
 import { useCart } from '../lib/CartContext'
 import { useAuth } from '../lib/AuthContext'
+import { ProductDetailsSkeleton } from '../components/Skeleton'
 import type { ProductWithDetails, SimpleInventory } from '../types/database'
 
 export default function ProductDetails() {
@@ -37,7 +38,7 @@ export default function ProductDetails() {
       .finally(() => setLoading(false))
   }, [slug])
 
-  if (loading) return <div className="section"><p className="text-muted">Loading...</p></div>
+  if (loading) return <ProductDetailsSkeleton />
   if (error || !product) {
     return (
       <div className="section">
