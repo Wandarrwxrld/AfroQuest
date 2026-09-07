@@ -8,10 +8,25 @@ export async function fetchAllCategories(): Promise<Category[]> {
 }
 
 /** Categories nested for a picker: top-level with their children attached. */
-export async function fetchCategoryTree(): Promise<(Category & { children: Category[] })[]> {
+export interface CategoryNode extends Category {
+  children: CategoryNode[]
+}
+
+/** Builds the full real category tree at whatever depth actually exists
+ *  in the data (previously hardcoded to 2 levels, which silently hid the
+ *  real 3rd level under Workwear > HIVZ > Pants/Shirts/etc). */
+export async function fetchCategoryTree(): Promise<CategoryNode[]> {
   const all = await fetchAllCategories()
-  const topLevel = all.filter((c) => !c.parent_id)
-  return topLevel.map((parent) => ({ ...parent, children: all.filter((c) => c.parent_id === parent.id) }))
+  const byParent = new Map<string | null, Category[]>()
+  for (const c of all) {
+    const key = c.parent_id
+    if (!byParent.has(key)) byParent.set(key, [])
+    byParent.get(key)!.push(c)
+  }
+  function build(parentId: string | null): CategoryNode[] {
+    return (byParent.get(parentId) ?? []).map((c) => ({ ...c, children: build(c.id) }))
+  }
+  return build(null)
 }
 
 export interface NewProductInput {

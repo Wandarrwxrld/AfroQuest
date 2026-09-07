@@ -10,14 +10,27 @@ import {
   type StagedImage,
   type AssignedImage,
 } from '../lib/imageStaging'
-import { fetchCategoryTree, createProduct, fetchRecentProductsForAdmin, setProductActive, countOrdersForProduct, deleteProductPermanently } from '../lib/adminProducts'
+import { fetchCategoryTree, createProduct, fetchRecentProductsForAdmin, setProductActive, countOrdersForProduct, deleteProductPermanently, type CategoryNode } from '../lib/adminProducts'
 import { SkeletonBox } from '../components/Skeleton'
-import type { Category, Product, ProductType } from '../types/database'
+import type { Product, ProductType } from '../types/database'
+
+/** Renders one <option> per category in this subtree, at whatever real
+ *  depth it goes to (previously hardcoded to 2 levels, which silently
+ *  hid categories nested a 3rd level deep, e.g. Workwear > HIVZ > Pants). */
+function renderCategoryOptions(node: CategoryNode, depth = 0): React.ReactElement[] {
+  const indent = '\u00A0\u00A0'.repeat(depth)
+  return [
+    <option key={node.id} value={node.id}>
+      {indent}{depth === 0 ? node.name + ' (general)' : node.name}
+    </option>,
+    ...node.children.flatMap((child) => renderCategoryOptions(child, depth + 1)),
+  ]
+}
 
 export default function AdminDashboard() {
   const [staged, setStaged] = useState<StagedImage[]>([])
   const [products, setProducts] = useState<Product[]>([])
-  const [categories, setCategories] = useState<(Category & { children: Category[] })[]>([])
+  const [categories, setCategories] = useState<CategoryNode[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set())
@@ -268,12 +281,9 @@ export default function AdminDashboard() {
               <input placeholder="Base price (ZMW)" type="number" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} style={{ padding: '0.6rem' }} />
               <select value={newCategoryId} onChange={(e) => setNewCategoryId(e.target.value)} style={{ padding: '0.6rem' }}>
                 <option value="">Choose category...</option>
-                {categories.map((parent) => (
-                  <optgroup key={parent.id} label={parent.name}>
-                    <option value={parent.id}>{parent.name} (general)</option>
-                    {parent.children.map((child) => (
-                      <option key={child.id} value={child.id}>{'\u00A0\u00A0'}{child.name}</option>
-                    ))}
+                {categories.map((topLevel) => (
+                  <optgroup key={topLevel.id} label={topLevel.name}>
+                    {renderCategoryOptions(topLevel)}
                   </optgroup>
                 ))}
               </select>
