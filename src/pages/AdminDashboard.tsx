@@ -5,7 +5,10 @@ import {
   uploadStagedImage,
   assignImageToProduct,
   discardStagedImage,
+  listProductImages,
+  removeImageFromProduct,
   type StagedImage,
+  type AssignedImage,
 } from '../lib/imageStaging'
 import { fetchCategoryTree, createProduct, fetchRecentProductsForAdmin, setProductActive, countOrdersForProduct, deleteProductPermanently } from '../lib/adminProducts'
 import { SkeletonBox } from '../components/Skeleton'
@@ -20,6 +23,9 @@ export default function AdminDashboard() {
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set())
   const [assignTarget, setAssignTarget] = useState<string>('') // productId or 'new'
   const [error, setError] = useState<string | null>(null)
+  const [expandedProductId, setExpandedProductId] = useState<string | null>(null)
+  const [expandedProductImages, setExpandedProductImages] = useState<AssignedImage[]>([])
+  const [loadingImages, setLoadingImages] = useState(false)
 
   // New product form state (only shown when assignTarget === 'new')
   const [newName, setNewName] = useState('')
@@ -142,6 +148,38 @@ export default function AdminDashboard() {
     }
   }
 
+  async function toggleProductImages(productId: string) {
+    if (expandedProductId === productId) {
+      setExpandedProductId(null)
+      setExpandedProductImages([])
+      return
+    }
+    setExpandedProductId(productId)
+    setLoadingImages(true)
+    setError(null)
+    try {
+      const images = await listProductImages(productId)
+      setExpandedProductImages(images)
+    } catch (e: any) {
+      setError(e.message ?? 'Failed to load product images')
+    } finally {
+      setLoadingImages(false)
+    }
+  }
+
+  async function handleRemoveAssignedImage(imageId: string, storagePath: string, productId: string) {
+    if (!confirm('Remove this photo from the product?')) return
+    setError(null)
+    try {
+      await removeImageFromProduct(imageId, storagePath)
+      // Refresh just this product's expanded gallery, not the whole dashboard.
+      const images = await listProductImages(productId)
+      setExpandedProductImages(images)
+    } catch (e: any) {
+      setError(e.message ?? 'Failed to remove image')
+    }
+  }
+
   return (
     <div className="section">
       <h1>Admin Dashboard</h1>
@@ -258,23 +296,57 @@ export default function AdminDashboard() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {products.map((p) => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--color-border)' }}>
-                <span>{p.name} <span className="text-muted">({p.product_type})</span></span>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button
-                    className="btn btn-outline"
-                    onClick={async () => { await setProductActive(p.id, !p.is_active); refresh() }}
-                  >
-                    {p.is_active ? 'Deactivate' : 'Activate'}
-                  </button>
-                  <button
-                    className="btn btn-outline"
-                    style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}
-                    onClick={() => handleDeleteProduct(p.id, p.name)}
-                  >
-                    Delete permanently
-                  </button>
+              <div key={p.id} style={{ padding: '0.5rem 0', borderBottom: '1px solid var(--color-border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{p.name} <span className="text-muted">({p.product_type})</span></span>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button className="btn btn-outline" onClick={() => toggleProductImages(p.id)}>
+                      {expandedProductId === p.id ? 'Hide photos' : 'Manage photos'}
+                    </button>
+                    <button
+                      className="btn btn-outline"
+                      onClick={async () => { await setProductActive(p.id, !p.is_active); refresh() }}
+                    >
+                      {p.is_active ? 'Deactivate' : 'Activate'}
+                    </button>
+                    <button
+                      className="btn btn-outline"
+                      style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger)' }}
+                      onClick={() => handleDeleteProduct(p.id, p.name)}
+                    >
+                      Delete permanently
+                    </button>
+                  </div>
                 </div>
+
+                {expandedProductId === p.id && (
+                  <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'var(--color-bg)', borderRadius: 'var(--radius)' }}>
+                    {loadingImages ? (
+                      <p className="text-muted" style={{ fontSize: '0.85rem' }}>Loading photos...</p>
+                    ) : expandedProductImages.length === 0 ? (
+                      <p className="text-muted" style={{ fontSize: '0.85rem' }}>No photos assigned yet. Assign some from the unassigned photos above.</p>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '0.6rem' }}>
+                        {expandedProductImages.map((img) => (
+                          <div key={img.id} style={{ position: 'relative' }}>
+                            <img
+                              src={img.url}
+                              alt=""
+                              style={{ width: '100%', aspectRatio: '1', objectFit: 'contain', background: 'white', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)' }}
+                            />
+                            <button
+                              onClick={() => handleRemoveAssignedImage(img.id, img.storagePath, p.id)}
+                              title="Remove this photo from the product"
+                              style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.65)', color: 'white', border: 'none', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', fontSize: '0.75rem' }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

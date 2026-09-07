@@ -94,3 +94,47 @@ export async function discardStagedImage(storagePath: string): Promise<void> {
   const { error } = await supabase.storage.from(BUCKET).remove([storagePath])
   if (error) throw error
 }
+
+export interface AssignedImage {
+  id: string
+  storagePath: string
+  url: string
+  displayOrder: number
+}
+
+/** Lists images already assigned to a product - the "you can see what's
+ *  on this product and remove one if you assigned the wrong photo" view
+ *  that was missing (previously only unassigned/staged images could be
+ *  discarded, not ones already attached to a product). */
+export async function listProductImages(productId: string): Promise<AssignedImage[]> {
+  const { data, error } = await (supabase as any)
+    .from('product_images')
+    .select('id, storage_path, display_order')
+    .eq('product_id', productId)
+    .order('display_order')
+
+  if (error) throw error
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    storagePath: row.storage_path,
+    url: resolveImageUrl(row.storage_path),
+    displayOrder: row.display_order,
+  }))
+}
+
+/** Removes an image already assigned to a product: deletes both the
+ *  product_images row AND the underlying Storage file, so nothing is
+ *  left orphaned in either place. This is the real fix for "I clicked
+ *  the wrong image on the wrong product, I can't remove that photo" -
+ *  it did not exist before; only unassigned staged photos were
+ *  removable. */
+export async function removeImageFromProduct(imageId: string, storagePath: string): Promise<void> {
+  const { error: dbError } = await (supabase as any).from('product_images').delete().eq('id', imageId)
+  if (dbError) throw dbError
+
+  // Storage removal happens second and is best-effort: if it fails, the
+  // photo no longer shows on the product (the DB link is already gone,
+  // which is what the admin actually cares about) even if the raw file
+  // lingers in Storage - a harmless orphan rather than a broken product page.
+  await supabase.storage.from(BUCKET).remove([storagePath])
+}
