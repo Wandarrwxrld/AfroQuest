@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 export default function Login() {
@@ -7,6 +8,7 @@ export default function Login() {
   const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [needsVerification, setNeedsVerification] = useState(false)
@@ -68,39 +70,72 @@ export default function Login() {
 
   async function handleResend() {
     setResendStatus('sending')
-    // Real server-side rate limit check (spec: "Resend-verification must
-    // be rate-limited") - not a client-side timer, which would reset on
-    // page refresh and provide no actual protection.
     const { data: allowed, error: rpcError } = await (supabase as any).rpc('check_and_record_resend_attempt', { p_email: email })
-
     if (rpcError || !allowed) {
       setResendStatus('limited')
       return
     }
-
     const { error } = await supabase.auth.resend({ type: 'signup', email })
     setResendStatus(error ? 'limited' : 'sent')
   }
 
+  /** Requires the corresponding provider to be enabled with real
+   *  credentials in the Supabase dashboard (Authentication > Providers).
+   *  Without that one-time setup, this correctly shows a clear
+   *  "provider not enabled" error rather than silently failing. */
+  async function handleOAuth(provider: 'google' | 'apple') {
+    setError(null)
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: window.location.origin },
+    })
+    if (error) setError(error.message)
+  }
+
   return (
-    <div className="section" style={{ maxWidth: 420, margin: '0 auto' }}>
-      <h1>Log in</h1>
+    <div className="section" style={{ maxWidth: 400, margin: '0 auto' }}>
+      <h1 style={{ textAlign: 'center', marginBottom: '0.25rem' }}>Sign In / Register</h1>
+      <p className="text-muted" style={{ textAlign: 'center', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+        🔒 Your data is protected
+      </p>
+
       {state?.justVerified && (
-        <p style={{ color: 'var(--color-success)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+        <p style={{ color: 'var(--color-success)', fontSize: '0.9rem', marginBottom: '1rem', textAlign: 'center' }}>
           Your email is verified. You can log in now.
         </p>
       )}
       {state?.justReset && (
-        <p style={{ color: 'var(--color-success)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+        <p style={{ color: 'var(--color-success)', fontSize: '0.9rem', marginBottom: '1rem', textAlign: 'center' }}>
           Your password has been reset. Log in with your new password.
         </p>
       )}
+
       <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '0.75rem' }}>
         <input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ padding: '0.7rem' }} />
-        <input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ padding: '0.7rem' }} />
+
+        <div style={{ position: 'relative' }}>
+          <input
+            placeholder="Password"
+            type={showPassword ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            style={{ padding: '0.7rem', paddingRight: '2.5rem', width: '100%' }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex' }}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
+
         {error && <p style={{ color: 'var(--color-danger)', fontSize: '0.9rem' }}>{error}</p>}
+
         <button className="btn btn-primary" disabled={loading} type="submit">
-          {loading ? 'Logging in...' : 'Log in'}
+          {loading ? 'Logging in...' : 'Continue'}
         </button>
       </form>
 
@@ -118,11 +153,27 @@ export default function Login() {
         </div>
       )}
 
-      <p className="text-muted" style={{ marginTop: '1rem' }}>
-        Don't have an account? <Link to="/register">Create one</Link>
-      </p>
-      <p className="text-muted" style={{ marginTop: '0.5rem' }}>
+      <p className="text-muted" style={{ marginTop: '0.75rem', fontSize: '0.9rem' }}>
         <Link to="/forgot-password">Forgot your password?</Link>
+      </p>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '1.5rem 0' }}>
+        <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
+        <span className="text-muted" style={{ fontSize: '0.8rem' }}>Or</span>
+        <div style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
+      </div>
+
+      <div style={{ display: 'grid', gap: '0.6rem' }}>
+        <button className="btn btn-outline" onClick={() => handleOAuth('google')} type="button" style={{ justifyContent: 'center' }}>
+          Continue with Google
+        </button>
+        <button className="btn btn-outline" onClick={() => handleOAuth('apple')} type="button" style={{ justifyContent: 'center' }}>
+          Continue with Apple
+        </button>
+      </div>
+
+      <p className="text-muted" style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.9rem' }}>
+        Don't have an account? <Link to="/register">Create one</Link>
       </p>
     </div>
   )
