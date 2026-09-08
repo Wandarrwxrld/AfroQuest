@@ -1,13 +1,13 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
 import { supabase } from './supabase'
 import { useAuth } from './AuthContext'
-import type { CartItem, ProductVariant, Inventory, Product, SimpleInventory } from '../types/database'
+import type { CartItem, ProductVariant, Inventory, Product, SimpleInventory, ProductImage } from '../types/database'
 
 /** A cart line joined with enough product/stock info to render the Cart
  *  page and validate quantities against real stock before checkout. */
 export interface CartLine extends CartItem {
-  variant: (ProductVariant & { inventory: Inventory | null; product: Product }) | null
-  simpleProduct: (Product & { simple_inventory: SimpleInventory | null }) | null
+  variant: (ProductVariant & { inventory: Inventory | null; product: Product & { images: ProductImage[] } }) | null
+  simpleProduct: (Product & { simple_inventory: SimpleInventory | null; images: ProductImage[] }) | null
 }
 
 interface CartContextValue {
@@ -39,8 +39,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       .from('cart_items')
       .select(
         `*,
-        variant:product_variants(*, inventory(*), product:products(*)),
-        simpleProduct:products!cart_items_product_id_fkey(*, simple_inventory(*))`
+        variant:product_variants(*, inventory(*), product:products(*, images:product_images(*))),
+        simpleProduct:products!cart_items_product_id_fkey(*, simple_inventory(*), images:product_images(*))`
       )
       .eq('user_id', user.id)
       .order('created_at', { ascending: true })

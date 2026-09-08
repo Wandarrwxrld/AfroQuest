@@ -7,7 +7,9 @@ export default function Header() {
   const { itemCount } = useCart()
   return (
     <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.5rem', borderBottom: '1px solid #e5e5e5' }}>
-      <Link to="/" style={{ fontWeight: 700, fontSize: '1.25rem', textDecoration: 'none', color: 'inherit' }}>AfroQuest</Link>
+      <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+        <img src="/logo.svg" alt="AfroQuest" style={{ height: 32 }} />
+      </Link>
       <nav style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', fontSize: '0.95rem' }}>
         <Link to="/shop">Shop</Link>
         <Link to="/cart">Cart{itemCount > 0 ? ` (${itemCount})` : ''}</Link>
