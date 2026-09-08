@@ -4,6 +4,7 @@ import { AuthProvider } from './lib/AuthContext'
 import { CartProvider } from './lib/CartContext'
 import { RequireAuth, RequireAdmin } from './components/RequireAuth'
 import Header from './components/Header'
+import Footer from './components/Footer'
 import Home from './pages/Home'
 import Shop from './pages/Shop'
 import ProductDetails from './pages/ProductDetails'
@@ -79,6 +80,7 @@ export default function App() {
         <BrowserRouter>
           <Header />
           <AnimatedRoutes />
+          <Footer />
         </BrowserRouter>
       </CartProvider>
     </AuthProvider>

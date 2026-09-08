@@ -32,11 +32,13 @@ export default function Cart() {
           const label = isVariant ? [item.variant!.size, item.variant!.color].filter(Boolean).join(' / ') : null
           const lineTotal = unitPrice * item.quantity
           total += lineTotal
+          const coverImage = [...(product.images ?? [])].sort((a, b) => a.display_order - b.display_order)[0]
+          const imageUrl = resolveProductImageUrl(coverImage?.storage_path)
 
           return (
             <div key={item.id} className="card" style={{ display: 'flex', gap: '1rem', padding: '1rem', alignItems: 'center' }}>
-              <div style={{ width: 72, height: 72, borderRadius: 'var(--radius)', overflow: 'hidden', flexShrink: 0, background: '#F1EFE8' }}>
-                <img src={resolveProductImageUrl(undefined)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <div style={{ width: 72, height: 72, borderRadius: 'var(--radius)', overflow: 'hidden', flexShrink: 0, background: 'white', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src={imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600 }}>{product.name}</div>

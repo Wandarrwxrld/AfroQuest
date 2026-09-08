@@ -8,10 +8,25 @@ export async function fetchAllCategories(): Promise<Category[]> {
 }
 
 /** Categories nested for a picker: top-level with their children attached. */
-export async function fetchCategoryTree(): Promise<(Category & { children: Category[] })[]> {
+export interface CategoryNode extends Category {
+  children: CategoryNode[]
+}
+
+/** Builds the full real category tree at whatever depth actually exists
+ *  in the data (previously hardcoded to 2 levels, which silently hid the
+ *  real 3rd level under Workwear > HIVZ > Pants/Shirts/etc). */
+export async function fetchCategoryTree(): Promise<CategoryNode[]> {
   const all = await fetchAllCategories()
-  const topLevel = all.filter((c) => !c.parent_id)
-  return topLevel.map((parent) => ({ ...parent, children: all.filter((c) => c.parent_id === parent.id) }))
+  const byParent = new Map<string | null, Category[]>()
+  for (const c of all) {
+    const key = c.parent_id
+    if (!byParent.has(key)) byParent.set(key, [])
+    byParent.get(key)!.push(c)
+  }
+  function build(parentId: string | null): CategoryNode[] {
+    return (byParent.get(parentId) ?? []).map((c) => ({ ...c, children: build(c.id) }))
+  }
+  return build(null)
 }
 
 export interface NewProductInput {
@@ -87,5 +102,43 @@ export async function fetchRecentProductsForAdmin(): Promise<Product[]> {
 export async function setProductActive(productId: string, isActive: boolean): Promise<void> {
   // Same unresolved tsc -b type collapse documented in createProduct above.
   const { error } = await (supabase as any).from('products').update({ is_active: isActive }).eq('id', productId).select()
+  if (error) throw error
+}
+
+/** Counts how many completed order line items reference this product
+ *  (directly for simple products, via its variants for apparel_footwear).
+ *  Used to warn admin before a permanent delete - the order itself is
+ *  never affected (order_items stores a name/price snapshot, not a live
+ *  reference), but it's worth knowing before removing a product that has
+ *  real sales history. */
+export async function countOrdersForProduct(productId: string): Promise<number> {
+  const { count: directCount } = await supabase
+    .from('order_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('product_id', productId)
+
+  const { data: variants } = await (supabase as any).from('product_variants').select('id').eq('product_id', productId)
+  const variantIds = (variants ?? []).map((v: any) => v.id)
+
+  let variantCount = 0
+  if (variantIds.length > 0) {
+    const { count } = await supabase
+      .from('order_items')
+      .select('id', { count: 'exact', head: true })
+      .in('variant_id', variantIds)
+    variantCount = count ?? 0
+  }
+
+  return (directCount ?? 0) + variantCount
+}
+
+/** Permanently deletes a product. Cascades in the database remove its
+ *  variants, inventory/simple_inventory rows, and product_images links -
+ *  nothing orphaned is left behind. Past orders are unaffected: order_items
+ *  stores product_name/unit_price as a snapshot at time of purchase, not a
+ *  live foreign key that would break. This is irreversible - the calling
+ *  UI is responsible for confirming with the admin first. */
+export async function deleteProductPermanently(productId: string): Promise<void> {
+  const { error } = await supabase.from('products').delete().eq('id', productId)
   if (error) throw error
 }

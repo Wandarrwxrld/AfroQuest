@@ -10,8 +10,8 @@ export default function ProductCard({ product }: { product: ProductWithDetails }
 
   return (
     <Link to={`/product/${product.slug}`} className="card" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-      <div style={{ aspectRatio: '1', background: '#F1EFE8', overflow: 'hidden' }}>
-        <SmartImage src={imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      <div style={{ aspectRatio: '1', background: 'white', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+        <SmartImage src={imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
       </div>
       <div style={{ padding: '1rem' }}>
         {product.brand && (
