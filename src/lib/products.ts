@@ -84,3 +84,35 @@ export function computeStockStatus(product: ProductWithDetails, simpleQty?: numb
   if (totalQty <= threshold) return { label: 'Low stock', className: 'badge-lowstock', totalQty }
   return { label: 'In stock', className: 'badge-instock', totalQty }
 }
+
+export interface PopularProduct {
+  name: string
+  slug: string
+}
+
+/** Ranks products by real completed-order count. On a young store where
+ *  few products have sold yet, this genuinely has little to rank -
+ *  falls back to filling remaining slots with recently-added active
+ *  products rather than showing an artificially padded or empty list. */
+export async function fetchPopularProducts(limit = 5): Promise<PopularProduct[]> {
+  // Same unresolved tsc -b type collapse documented in adminProducts.ts.
+  const { data: active } = await (supabase as any).from('products').select('id, name, slug').eq('is_active', true)
+  if (!active || active.length === 0) return []
+
+  const counts = new Map<string, number>()
+  for (const p of active as any[]) {
+    const { count } = await supabase
+      .from('order_items')
+      .select('id', { count: 'exact', head: true })
+      .or(`product_id.eq.${p.id},variant_id.in.(${(await getVariantIds(p.id)).join(',') || 'null'})`)
+    counts.set(p.id, count ?? 0)
+  }
+
+  const ranked = [...active].sort((a: any, b: any) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0))
+  return ranked.slice(0, limit).map((p: any) => ({ name: p.name, slug: p.slug }))
+}
+
+async function getVariantIds(productId: string): Promise<string[]> {
+  const { data } = await (supabase as any).from('product_variants').select('id').eq('product_id', productId)
+  return (data ?? []).map((v: any) => v.id)
+}
