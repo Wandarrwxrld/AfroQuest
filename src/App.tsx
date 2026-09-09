@@ -23,6 +23,7 @@ import About from './pages/About'
 import Contact from './pages/Contact'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminMfaSetup from './pages/AdminMfaSetup'
+import AdminOrders from './pages/AdminOrders'
 import MfaChallenge from './pages/MfaChallenge'
 
 /** One consistent, deliberate transition on every route change - a soft
@@ -68,6 +69,7 @@ function AnimatedRoutes() {
         <Route path="/mfa-challenge" element={<RequireAuth><PageTransition><div className="site-main"><MfaChallenge /></div></PageTransition></RequireAuth>} />
         <Route path="/admin" element={<RequireAdmin><PageTransition><div className="site-main"><AdminDashboard /></div></PageTransition></RequireAdmin>} />
         <Route path="/admin/mfa-setup" element={<RequireAuth><PageTransition><div className="site-main"><AdminMfaSetup /></div></PageTransition></RequireAuth>} />
+        <Route path="/admin/orders" element={<RequireAdmin><PageTransition><div className="site-main"><AdminOrders /></div></PageTransition></RequireAdmin>} />
       </Routes>
     </AnimatePresence>
   )

@@ -196,9 +196,10 @@ export default function AdminDashboard() {
   return (
     <div className="section">
       <h1>Admin Dashboard</h1>
-      <p style={{ marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem' }}>
+        <Link to="/admin/orders" className="text-muted">Manage orders →</Link>
         <Link to="/admin/mfa-setup" className="text-muted">Set up two-factor authentication →</Link>
-      </p>
+      </div>
       {error && <p style={{ color: 'var(--color-danger)' }}>{error}</p>}
 
       {/* === Upload === */}
