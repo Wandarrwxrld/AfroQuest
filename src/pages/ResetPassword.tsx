@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sessionReady, setSessionReady] = useState(false)
@@ -72,8 +74,13 @@ export default function ResetPassword() {
     <div className="section" style={{ maxWidth: 420, margin: '0 auto' }}>
       <h1>Set a new password</h1>
       <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '0.75rem' }}>
-        <input placeholder="New password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} style={{ padding: '0.7rem' }} />
-        <input placeholder="Confirm new password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} style={{ padding: '0.7rem' }} />
+        <div style={{ position: 'relative' }}>
+          <input placeholder="New password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} style={{ padding: '0.7rem', paddingRight: '2.5rem', width: '100%' }} />
+          <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? 'Hide password' : 'Show password'} style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', display: 'flex' }}>
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
+        <input placeholder="Confirm new password" type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} style={{ padding: '0.7rem' }} />
         {error && <p style={{ color: 'var(--color-danger)', fontSize: '0.9rem' }}>{error}</p>}
         <button className="btn btn-primary" disabled={loading} type="submit">
           {loading ? 'Updating...' : 'Update password'}

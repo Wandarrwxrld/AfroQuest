@@ -73,6 +73,19 @@ function AnimatedRoutes() {
   )
 }
 
+/** Footer previously rendered unconditionally on every route, including
+ *  auth pages (login, register, etc.) and the admin dashboard - neither
+ *  should show the customer-facing Find-Us/footer block. Hidden on any
+ *  route under these prefixes. */
+const NO_FOOTER_PREFIXES = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/mfa-challenge', '/admin']
+
+function ConditionalFooter() {
+  const location = useLocation()
+  const hide = NO_FOOTER_PREFIXES.some((prefix) => location.pathname.startsWith(prefix))
+  if (hide) return null
+  return <Footer />
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -80,7 +93,7 @@ export default function App() {
         <BrowserRouter>
           <Header />
           <AnimatedRoutes />
-          <Footer />
+          <ConditionalFooter />
         </BrowserRouter>
       </CartProvider>
     </AuthProvider>
