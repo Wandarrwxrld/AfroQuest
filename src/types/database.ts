@@ -2,7 +2,7 @@
 // (project qrlgnhtxspkmkwdjsqnh). Regenerate later with:
 //   supabase gen types typescript --project-id qrlgnhtxspkmkwdjsqnh
 
-export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'packed' | 'shipped' | 'delivered' | 'cancelled'
 export type UserRole = 'customer' | 'admin' | 'super_admin' | 'order_admin' | 'inventory_admin' | 'content_admin'
 export type ProductType = 'apparel_footwear' | 'simple'
 
