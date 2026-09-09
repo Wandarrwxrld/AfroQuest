@@ -32,7 +32,7 @@ export default function Header() {
   return (
     <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.5rem', borderBottom: '1px solid #e5e5e5' }}>
       <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-        <img src="/logo.svg" alt="AfroQuest" style={{ height: 32 }} />
+        <img src="/logo.png" alt="AfroQuest" style={{ height: 34 }} />
       </Link>
 
       <nav style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
