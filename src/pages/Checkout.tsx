@@ -61,6 +61,11 @@ export default function Checkout() {
       return
     }
 
+    // Real order-confirmation email, fire-and-forget: a slow or failed
+    // email send should never block the customer from reaching their
+    // confirmation page - the order itself already succeeded above.
+    supabase.functions.invoke('send-order-email', { body: { orderId, emailType: 'confirmation' } }).catch(() => {})
+
     await refresh()
     navigate(`/order-confirmation/${orderId}`)
   }

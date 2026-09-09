@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 import {
   fetchAllOrdersForAdmin,
   fetchOrderStatusHistory,
@@ -76,6 +77,15 @@ export default function AdminOrders() {
       // server-side regardless of what this UI offers, so a stale or
       // tampered client request still cannot force an illegal jump.
       await updateOrderStatus(orderId, newStatus, notes)
+
+      // Real shipment-confirmation email, fire-and-forget: the status
+      // update above already succeeded and is the thing that matters -
+      // an email hiccup shouldn't surface as an error on a real,
+      // successful status change.
+      if (newStatus === 'shipped') {
+        supabase.functions.invoke('send-order-email', { body: { orderId, emailType: 'shipment' } }).catch(() => {})
+      }
+
       await refresh()
       if (expandedOrderId === orderId) setHistory(await fetchOrderStatusHistory(orderId))
     } catch (e: any) {
