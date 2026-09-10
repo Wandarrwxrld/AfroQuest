@@ -1,44 +1,92 @@
 import { supabase } from './supabase'
 
+export interface InventoryVariantRow {
+  variantId: string
+  label: string
+  available: number
+  reserved: number
+  total: number
+  lowStockThreshold: number
+}
+
 export interface InventoryRow {
   productId: string
   name: string
+  sku: string | null
+  category: string | null
+  brand: string | null
   productType: 'apparel_footwear' | 'simple'
   isActive: boolean
+  priceBase: number
   currentStock: number | null
+  reservedStock: number
+  lowStockThreshold: number
   unitsSold: number
-  variantBreakdown: { label: string; quantity: number }[] | null
+  updatedAt: string | null
+  variantBreakdown: InventoryVariantRow[] | null
 }
 
+/** "Reserved" means units already subtracted from real stock (quantity)
+ *  by place_order(), but for an order that hasn't shipped yet -
+ *  confirmed/processing/packed. Not a stored column: quantity already
+ *  reflects post-checkout stock, so this is a genuine separate
+ *  calculation over live order data, not a duplicate of the same number. */
+const COMMITTED_UNSHIPPED_STATUSES = ['confirmed', 'processing', 'packed']
+
 export async function fetchInventoryOverview(): Promise<InventoryRow[]> {
-  const { data: products, error } = await supabase
+  const { data: products, error } = await (supabase as any)
     .from('products')
     .select(
-      `id, name, product_type, is_active,
-      variants:product_variants(id, size, color, inventory(quantity)),
-      simple_inventory(quantity)`
+      `id, name, brand, base_price, product_type, is_active, updated_at,
+      category:categories(name),
+      variants:product_variants(id, size, color, sku, inventory(quantity, low_stock_threshold)),
+      simple_inventory(quantity, low_stock_threshold)`
     )
     .order('name')
 
   if (error) throw error
 
+  const { data: reservedRows } = await (supabase as any)
+    .from('order_items')
+    .select('product_id, variant_id, quantity, orders!inner(status)')
+    .in('orders.status', COMMITTED_UNSHIPPED_STATUSES)
+
+  const reservedByVariant = new Map<string, number>()
+  const reservedByProduct = new Map<string, number>()
+  for (const r of reservedRows ?? []) {
+    if (r.variant_id) reservedByVariant.set(r.variant_id, (reservedByVariant.get(r.variant_id) ?? 0) + r.quantity)
+    if (r.product_id) reservedByProduct.set(r.product_id, (reservedByProduct.get(r.product_id) ?? 0) + r.quantity)
+  }
+
   const rows: InventoryRow[] = []
 
   for (const p of (products ?? []) as any[]) {
     let currentStock: number | null = null
-    let variantBreakdown: { label: string; quantity: number }[] | null = null
+    let reservedStock = 0
+    let lowStockThreshold = 5
+    let variantBreakdown: InventoryVariantRow[] | null = null
+    let sku: string | null = null
 
     if (p.product_type === 'apparel_footwear') {
       const variants = p.variants ?? []
       if (variants.length > 0) {
         currentStock = variants.reduce((sum: number, v: any) => sum + (v.inventory?.quantity ?? 0), 0)
+        reservedStock = variants.reduce((sum: number, v: any) => sum + (reservedByVariant.get(v.id) ?? 0), 0)
+        lowStockThreshold = Math.max(...variants.map((v: any) => v.inventory?.low_stock_threshold ?? 5))
+        sku = variants[0]?.sku ?? null
         variantBreakdown = variants.map((v: any) => ({
+          variantId: v.id,
           label: [v.size, v.color].filter(Boolean).join(' / ') || 'Default',
-          quantity: v.inventory?.quantity ?? 0,
+          available: v.inventory?.quantity ?? 0,
+          reserved: reservedByVariant.get(v.id) ?? 0,
+          total: (v.inventory?.quantity ?? 0) + (reservedByVariant.get(v.id) ?? 0),
+          lowStockThreshold: v.inventory?.low_stock_threshold ?? 5,
         }))
       }
     } else {
       currentStock = p.simple_inventory?.quantity ?? null
+      reservedStock = reservedByProduct.get(p.id) ?? 0
+      lowStockThreshold = p.simple_inventory?.low_stock_threshold ?? 5
     }
 
     const { count } = await supabase
@@ -53,15 +101,32 @@ export async function fetchInventoryOverview(): Promise<InventoryRow[]> {
     rows.push({
       productId: p.id,
       name: p.name,
+      sku,
+      category: p.category?.name ?? null,
+      brand: p.brand,
       productType: p.product_type,
       isActive: p.is_active,
+      priceBase: p.base_price,
       currentStock,
+      reservedStock,
+      lowStockThreshold,
       unitsSold: count ?? 0,
+      updatedAt: p.updated_at,
       variantBreakdown,
     })
   }
 
   return rows
+}
+
+export async function updateVariantStock(variantId: string, newQuantity: number): Promise<void> {
+  const { error } = await (supabase as any).from('inventory').update({ quantity: newQuantity }).eq('variant_id', variantId)
+  if (error) throw error
+}
+
+export async function updateSimpleProductStock(productId: string, newQuantity: number): Promise<void> {
+  const { error } = await (supabase as any).from('simple_inventory').update({ quantity: newQuantity }).eq('product_id', productId)
+  if (error) throw error
 }
 
 export interface AdminLoginEvent {

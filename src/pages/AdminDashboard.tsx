@@ -12,6 +12,7 @@ import {
 } from '../lib/imageStaging'
 import { fetchCategoryTree, createProduct, fetchRecentProductsForAdmin, setProductActive, countOrdersForProduct, deleteProductPermanently, type CategoryNode } from '../lib/adminProducts'
 import { SkeletonBox } from '../components/Skeleton'
+import { useAuth } from '../lib/AuthContext'
 import type { Product, ProductType } from '../types/database'
 
 /** Renders one <option> per category in this subtree, at whatever real
@@ -28,6 +29,7 @@ function renderCategoryOptions(node: CategoryNode, depth = 0): React.ReactElemen
 }
 
 export default function AdminDashboard() {
+  const { isSuperAdmin } = useAuth()
   const [staged, setStaged] = useState<StagedImage[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<CategoryNode[]>([])
@@ -196,8 +198,10 @@ export default function AdminDashboard() {
   return (
     <div className="section">
       <h1>Admin Dashboard</h1>
-      <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <Link to="/admin/inventory" className="text-muted">Inventory management →</Link>
         <Link to="/admin/orders" className="text-muted">Manage orders →</Link>
+        {isSuperAdmin && <Link to="/admin/accounts" className="text-muted">Admin accounts →</Link>}
         <Link to="/admin/mfa-setup" className="text-muted">Set up two-factor authentication →</Link>
       </div>
       {error && <p style={{ color: 'var(--color-danger)' }}>{error}</p>}
