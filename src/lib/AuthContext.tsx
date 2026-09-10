@@ -3,7 +3,20 @@ import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import type { Profile } from '../types/database'
 
-const ADMIN_TIER_ROLES = ['admin', 'super_admin', 'order_admin', 'inventory_admin', 'content_admin']
+const ADMIN_TIER_ROLES = ['admin', 'super_admin', 'order_admin', 'inventory_admin', 'content_admin', 'general_admin']
+
+export type PermissionKey = 'inventory' | 'orders' | 'products_content' | 'admin_management' | 'security_settings'
+
+/** Fixed roles imply their own scope automatically (mirrors has_permission()
+ *  in the database exactly - kept in sync manually since it's a small,
+ *  stable mapping). general_admin has no implied permissions; its grants
+ *  come only from the admin_permissions table, fetched separately below. */
+const ROLE_IMPLIED_PERMISSIONS: Record<string, PermissionKey[]> = {
+  super_admin: ['inventory', 'orders', 'products_content', 'admin_management', 'security_settings'],
+  inventory_admin: ['inventory'],
+  order_admin: ['orders'],
+  content_admin: ['products_content'],
+}
 
 interface AuthContextValue {
   session: Session | null
@@ -12,11 +25,11 @@ interface AuthContextValue {
   loading: boolean
   isAdmin: boolean
   isSuperAdmin: boolean
-  /** true once the session has completed any required MFA step (aal2).
-   *  For accounts with no MFA factor enrolled, aal1 is already the
-   *  highest reachable level, so this is true immediately - MFA is
-   *  additive, not something that locks out accounts that haven't set
-   *  it up. */
+  /** Real, backend-verified access, not just a role-name guess -
+   *  general_admin accounts only ever pass for keys they've actually
+   *  been granted, mirroring has_permission() in the database. */
+  hasPermission: (key: PermissionKey) => boolean
+  permissionsLoading: boolean
   mfaSatisfied: boolean
   mfaCheckLoading: boolean
   signOut: () => Promise<void>
@@ -44,6 +57,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [mfaSatisfied, setMfaSatisfied] = useState(true)
   const [mfaCheckLoading, setMfaCheckLoading] = useState(false)
+  const [grantedPermissions, setGrantedPermissions] = useState<PermissionKey[]>([])
+  const [permissionsLoading, setPermissionsLoading] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -68,6 +83,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [session?.user])
 
   useEffect(() => {
+    if (profile?.role !== 'general_admin') {
+      setGrantedPermissions([])
+      return
+    }
+    setPermissionsLoading(true)
+    // Real grants only - RLS on admin_permissions already restricts this
+    // to the caller's own rows (admin_permissions_self_read), so this
+    // cannot be used to see another admin's permissions.
+    ;(supabase as any)
+      .from('admin_permissions')
+      .select('permission')
+      .eq('admin_id', profile.id)
+      .then(({ data }: any) => {
+        setGrantedPermissions((data ?? []).map((r: any) => r.permission))
+        setPermissionsLoading(false)
+      })
+  }, [profile?.id, profile?.role])
+
+  useEffect(() => {
     if (!session) {
       setMfaSatisfied(true)
       return
@@ -90,6 +124,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = !!role && ADMIN_TIER_ROLES.includes(role)
   const isSuperAdmin = role === 'super_admin'
 
+  function hasPermission(key: PermissionKey): boolean {
+    if (!role) return false
+    if (role === 'general_admin') return grantedPermissions.includes(key)
+    return (ROLE_IMPLIED_PERMISSIONS[role] ?? []).includes(key)
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -99,6 +139,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         isAdmin,
         isSuperAdmin,
+        hasPermission,
+        permissionsLoading,
         mfaSatisfied,
         mfaCheckLoading,
         signOut: async () => { await supabase.auth.signOut() },

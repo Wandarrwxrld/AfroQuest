@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AuthProvider } from './lib/AuthContext'
 import { CartProvider } from './lib/CartContext'
-import { RequireAuth, RequireAdmin } from './components/RequireAuth'
+import { RequireAuth, RequireAdmin, RequireSuperAdmin } from './components/RequireAuth'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import Home from './pages/Home'
@@ -24,6 +24,7 @@ import Contact from './pages/Contact'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminMfaSetup from './pages/AdminMfaSetup'
 import AdminOrders from './pages/AdminOrders'
+import AdminAccounts from './pages/AdminAccounts'
 import MfaChallenge from './pages/MfaChallenge'
 
 /** One consistent, deliberate transition on every route change - a soft
@@ -70,6 +71,7 @@ function AnimatedRoutes() {
         <Route path="/admin" element={<RequireAdmin><PageTransition><div className="site-main"><AdminDashboard /></div></PageTransition></RequireAdmin>} />
         <Route path="/admin/mfa-setup" element={<RequireAuth><PageTransition><div className="site-main"><AdminMfaSetup /></div></PageTransition></RequireAuth>} />
         <Route path="/admin/orders" element={<RequireAdmin><PageTransition><div className="site-main"><AdminOrders /></div></PageTransition></RequireAdmin>} />
+        <Route path="/admin/accounts" element={<RequireSuperAdmin><PageTransition><div className="site-main"><AdminAccounts /></div></PageTransition></RequireSuperAdmin>} />
       </Routes>
     </AnimatePresence>
   )
