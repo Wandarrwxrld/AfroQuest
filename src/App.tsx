@@ -12,6 +12,7 @@ import SearchResults from './pages/SearchResults'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
+import PhoneLogin from './pages/PhoneLogin'
 import ResetPassword from './pages/ResetPassword'
 import VerifyEmail from './pages/VerifyEmail'
 import MyAccount from './pages/MyAccount'
@@ -59,6 +60,7 @@ function AnimatedRoutes() {
         <Route path="/login" element={<PageTransition><div className="site-main"><Login /></div></PageTransition>} />
         <Route path="/register" element={<PageTransition><div className="site-main"><Register /></div></PageTransition>} />
         <Route path="/forgot-password" element={<PageTransition><div className="site-main"><ForgotPassword /></div></PageTransition>} />
+        <Route path="/phone-login" element={<PageTransition><div className="site-main"><PhoneLogin /></div></PageTransition>} />
         <Route path="/reset-password" element={<PageTransition><div className="site-main"><ResetPassword /></div></PageTransition>} />
         <Route path="/verify-email" element={<PageTransition><div className="site-main"><VerifyEmail /></div></PageTransition>} />
         <Route path="/about" element={<PageTransition><div className="site-main"><About /></div></PageTransition>} />
