@@ -83,7 +83,7 @@ export default function Login() {
    *  credentials in the Supabase dashboard (Authentication > Providers).
    *  Without that one-time setup, this correctly shows a clear
    *  "provider not enabled" error rather than silently failing. */
-  async function handleOAuth(provider: 'google' | 'apple') {
+  async function handleOAuth(provider: 'google') {
     setError(null)
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
@@ -166,15 +166,6 @@ export default function Login() {
       <div style={{ display: 'grid', gap: '0.6rem' }}>
         <button className="btn btn-outline" onClick={() => handleOAuth('google')} type="button" style={{ justifyContent: 'center' }}>
           Continue with Google
-        </button>
-        <button
-          className="btn btn-outline"
-          type="button"
-          disabled
-          title="Apple sign-in requires a paid Apple Developer account - not yet available"
-          style={{ justifyContent: 'center', opacity: 0.5, cursor: 'not-allowed' }}
-        >
-          Continue with Apple (coming soon)
         </button>
       </div>
 
