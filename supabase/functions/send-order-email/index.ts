@@ -52,28 +52,38 @@ function renderShipmentHtml(order: any): string {
   `
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
 Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: corsHeaders })
   }
 
   try {
     const { orderId, emailType } = await req.json()
     if (!orderId || !['confirmation', 'shipment'].includes(emailType)) {
-      return new Response(JSON.stringify({ error: 'orderId and a valid emailType are required' }), { status: 400 })
+      return new Response(JSON.stringify({ error: 'orderId and a valid emailType are required' }), { status: 400, headers: corsHeaders })
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
     const { data: order, error: orderError } = await supabase.from('orders').select('*').eq('id', orderId).single()
     if (orderError || !order) {
-      return new Response(JSON.stringify({ error: 'Order not found' }), { status: 404 })
+      return new Response(JSON.stringify({ error: 'Order not found' }), { status: 404, headers: corsHeaders })
     }
 
     // Resolve the recipient's real email from auth.users via the order's user_id.
     const { data: userData, error: userError } = await supabase.auth.admin.getUserById(order.user_id)
     if (userError || !userData?.user?.email) {
-      return new Response(JSON.stringify({ error: 'Could not resolve recipient email' }), { status: 404 })
+      return new Response(JSON.stringify({ error: 'Could not resolve recipient email' }), { status: 404, headers: corsHeaders })
     }
     const toEmail = userData.user.email
 
@@ -96,7 +106,7 @@ Deno.serve(async (req: Request) => {
       // would have been sent instead of silently pretending it worked,
       // so this is easy to spot in function logs during setup.
       console.log(`[send-order-email] RESEND_API_KEY not set - would have sent "${subject}" to ${toEmail}`)
-      return new Response(JSON.stringify({ sent: false, reason: 'RESEND_API_KEY not configured' }), { status: 200 })
+      return new Response(JSON.stringify({ sent: false, reason: 'RESEND_API_KEY not configured' }), { status: 200, headers: corsHeaders })
     }
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
@@ -111,12 +121,12 @@ Deno.serve(async (req: Request) => {
     if (!resendResponse.ok) {
       const errText = await resendResponse.text()
       console.error('[send-order-email] Resend API error:', errText)
-      return new Response(JSON.stringify({ sent: false, error: errText }), { status: 502 })
+      return new Response(JSON.stringify({ sent: false, error: errText }), { status: 502, headers: corsHeaders })
     }
 
-    return new Response(JSON.stringify({ sent: true }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ sent: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   } catch (err) {
     console.error('[send-order-email] Unexpected error:', err)
-    return new Response(JSON.stringify({ error: 'Internal error' }), { status: 500 })
+    return new Response(JSON.stringify({ error: 'Internal error' }), { status: 500, headers: corsHeaders })
   }
 })

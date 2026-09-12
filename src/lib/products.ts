@@ -101,10 +101,14 @@ export async function fetchPopularProducts(limit = 5): Promise<PopularProduct[]>
 
   const counts = new Map<string, number>()
   for (const p of active as any[]) {
+    const variantIds = await getVariantIds(p.id)
+    const orFilter = variantIds.length > 0
+      ? `product_id.eq.${p.id},variant_id.in.(${variantIds.join(',')})`
+      : `product_id.eq.${p.id}`
     const { count } = await supabase
       .from('order_items')
       .select('id', { count: 'exact', head: true })
-      .or(`product_id.eq.${p.id},variant_id.in.(${(await getVariantIds(p.id)).join(',') || 'null'})`)
+      .or(orFilter)
     counts.set(p.id, count ?? 0)
   }
 
