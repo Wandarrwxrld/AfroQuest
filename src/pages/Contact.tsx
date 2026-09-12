@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Phone, Mail, MapPin, Clock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { OFFICE_LOCATION } from '../components/OfficeLocation'
-import OfficeLocationBlock from '../components/OfficeLocation'
 
 // TODO: replace with real contact details once provided.
 const CONTACT_INFO = {
@@ -81,10 +80,6 @@ export default function Contact() {
             </form>
           )}
         </div>
-      </div>
-
-      <div style={{ marginTop: '2.5rem' }}>
-        <OfficeLocationBlock />
       </div>
     </div>
   )

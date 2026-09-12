@@ -18,3 +18,15 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
   if (!mfaSatisfied) return <Navigate to="/mfa-challenge" replace />
   return <>{children}</>
 }
+
+/** Stricter than RequireAdmin - for pages the roles document explicitly
+ *  reserves to super_admin (admin account/role/permission management,
+ *  security settings). A non-super_admin admin is redirected to the
+ *  regular dashboard, not just blocked with an error. */
+export function RequireSuperAdmin({ children }: { children: ReactNode }) {
+  const { isSuperAdmin, loading, mfaSatisfied, mfaCheckLoading } = useAuth()
+  if (loading || mfaCheckLoading) return null
+  if (!isSuperAdmin) return <Navigate to="/admin" replace />
+  if (!mfaSatisfied) return <Navigate to="/mfa-challenge" replace />
+  return <>{children}</>
+}

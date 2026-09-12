@@ -83,7 +83,7 @@ export default function Login() {
    *  credentials in the Supabase dashboard (Authentication > Providers).
    *  Without that one-time setup, this correctly shows a clear
    *  "provider not enabled" error rather than silently failing. */
-  async function handleOAuth(provider: 'google' | 'apple') {
+  async function handleOAuth(provider: 'google') {
     setError(null)
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
@@ -167,10 +167,11 @@ export default function Login() {
         <button className="btn btn-outline" onClick={() => handleOAuth('google')} type="button" style={{ justifyContent: 'center' }}>
           Continue with Google
         </button>
-        <button className="btn btn-outline" onClick={() => handleOAuth('apple')} type="button" style={{ justifyContent: 'center' }}>
-          Continue with Apple
-        </button>
       </div>
+
+      <p className="text-muted" style={{ marginTop: '0.75rem', fontSize: '0.9rem' }}>
+        <Link to="/phone-login">Trouble logging in? Use phone number instead.</Link>
+      </p>
 
       <p className="text-muted" style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.9rem' }}>
         Don't have an account? <Link to="/register">Create one</Link>

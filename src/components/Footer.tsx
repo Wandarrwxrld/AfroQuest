@@ -31,7 +31,9 @@ export default function Footer() {
       <div style={{ background: 'var(--color-dark)', color: 'white', padding: '3rem 1.5rem 1.5rem' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1.3fr 0.9fr 1fr 1fr', gap: '2rem' }}>
           <div>
-            <img src="/logo.svg" alt="AfroQuest" style={{ height: 30, filter: 'brightness(0) invert(1)' }} />
+            <div style={{ background: 'white', borderRadius: 'var(--radius)', padding: '0.4rem 0.6rem', display: 'inline-block' }}>
+              <img src="/logo.png" alt="AfroQuest" style={{ height: 30, display: 'block' }} />
+            </div>
             <p style={{ color: '#B9B7AD', fontSize: '0.9rem', lineHeight: 1.6, marginTop: '0.75rem' }}>
               Safety footwear, workwear, and industrial PPE for Zambia — quality gear that keeps you protected on the job.
             </p>
