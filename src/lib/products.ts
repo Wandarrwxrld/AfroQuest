@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { ProductWithDetails, SimpleInventory } from '../types/database'
+import type { Category, ProductWithDetails, SimpleInventory } from '../types/database'
 
 const PLACEHOLDER_IMAGE = '/placeholder-product.svg'
 
@@ -33,6 +33,42 @@ export async function fetchActiveProducts(categorySlug?: string): Promise<Produc
   const { data, error } = await query
   if (error) throw error
   return (data ?? []) as unknown as ProductWithDetails[]
+}
+
+export interface CategoryTile {
+  category: Category
+  imageUrl: string
+}
+
+/** One representative photo per category for the homepage "Shop by
+ *  category" tiles - the photo of whichever active product in that
+ *  category was listed most recently, not a placeholder graphic.
+ *  Categories with no active products yet are left out rather than
+ *  shown with a broken image. Single pass over one products query, so
+ *  it costs one extra round trip total, not one per category. */
+export async function fetchHomeCategoryTiles(limit = 8): Promise<CategoryTile[]> {
+  const [{ data: cats, error: catErr }, { data: prods, error: prodErr }] = await Promise.all([
+    supabase.from('categories').select('*').order('name'),
+    supabase
+      .from('products')
+      .select('category_id, images:product_images(storage_path, display_order)')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false }),
+  ])
+  if (catErr) throw catErr
+  if (prodErr) throw prodErr
+
+  const imageByCategory = new Map<string, string>()
+  for (const p of (prods ?? []) as any[]) {
+    if (!p.category_id || imageByCategory.has(p.category_id)) continue
+    const cover = [...(p.images ?? [])].sort((a: any, b: any) => a.display_order - b.display_order)[0]
+    imageByCategory.set(p.category_id, resolveProductImageUrl(cover?.storage_path))
+  }
+
+  return ((cats ?? []) as Category[])
+    .filter((c) => imageByCategory.has(c.id))
+    .slice(0, limit)
+    .map((c) => ({ category: c, imageUrl: imageByCategory.get(c.id)! }))
 }
 
 export async function fetchProductBySlug(slug: string): Promise<ProductWithDetails> {
@@ -119,4 +155,30 @@ export async function fetchPopularProducts(limit = 5): Promise<PopularProduct[]>
 async function getVariantIds(productId: string): Promise<string[]> {
   const { data } = await (supabase as any).from('product_variants').select('id').eq('product_id', productId)
   return (data ?? []).map((v: any) => v.id)
+}
+
+async function countOrdersFor(productId: string, variantIds: string[]): Promise<number> {
+  const orFilter = variantIds.length > 0
+    ? `product_id.eq.${productId},variant_id.in.(${variantIds.join(',')})`
+    : `product_id.eq.${productId}`
+  const { count } = await supabase.from('order_items').select('id', { count: 'exact', head: true }).or(orFilter)
+  return count ?? 0
+}
+
+/** Real best sellers for the homepage carousel - same order-count
+ *  ranking as fetchPopularProducts, but returning full product records
+ *  (image, price, stock) instead of just name+slug, since the carousel
+ *  needs a real ProductCard. Runs the per-product order counts in
+ *  parallel rather than fetchPopularProducts' sequential loop. */
+export async function fetchBestSellingProducts(limit = 8): Promise<ProductWithDetails[]> {
+  const products = await fetchActiveProducts()
+  if (products.length === 0) return []
+  const counts = await Promise.all(
+    products.map((p) => countOrdersFor(p.id, (p.variants ?? []).map((v) => v.id)))
+  )
+  return products
+    .map((product, i) => ({ product, count: counts[i] }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit)
+    .map((x) => x.product)
 }
