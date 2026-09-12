@@ -81,9 +81,12 @@ export default function AdminOrders() {
       // Real shipment-confirmation email, fire-and-forget: the status
       // update above already succeeded and is the thing that matters -
       // an email hiccup shouldn't surface as an error on a real,
-      // successful status change.
+      // successful status change. Previously silently discarded any
+      // failure - now at least logged so it's not invisible.
       if (newStatus === 'shipped') {
-        supabase.functions.invoke('send-order-email', { body: { orderId, emailType: 'shipment' } }).catch(() => {})
+        supabase.functions.invoke('send-order-email', { body: { orderId, emailType: 'shipment' } })
+          .then(({ error }) => { if (error) console.error('[order-email] shipment send failed:', error) })
+          .catch((err) => console.error('[order-email] shipment invoke threw:', err))
       }
 
       await refresh()

@@ -64,7 +64,12 @@ export default function Checkout() {
     // Real order-confirmation email, fire-and-forget: a slow or failed
     // email send should never block the customer from reaching their
     // confirmation page - the order itself already succeeded above.
-    supabase.functions.invoke('send-order-email', { body: { orderId, emailType: 'confirmation' } }).catch(() => {})
+    // Previously used .catch(() => {}), which silently discarded any
+    // failure with no trace anywhere - fixed to at least log it, since
+    // an invisible failure is worse than a slow one.
+    supabase.functions.invoke('send-order-email', { body: { orderId, emailType: 'confirmation' } })
+      .then(({ error }) => { if (error) console.error('[order-email] confirmation send failed:', error) })
+      .catch((err) => console.error('[order-email] confirmation invoke threw:', err))
 
     await refresh()
     navigate(`/order-confirmation/${orderId}`)
