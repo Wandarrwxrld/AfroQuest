@@ -89,14 +89,19 @@ export async function fetchInventoryOverview(): Promise<InventoryRow[]> {
       lowStockThreshold = p.simple_inventory?.low_stock_threshold ?? 5
     }
 
-    const { count } = await supabase
-      .from('order_items')
-      .select('id', { count: 'exact', head: true })
-      .or(
-        p.product_type === 'simple'
-          ? `product_id.eq.${p.id}`
-          : `variant_id.in.(${(p.variants ?? []).map((v: any) => v.id).join(',') || 'null'})`
-      )
+    const variantIds = (p.variants ?? []).map((v: any) => v.id)
+    const orFilter =
+      p.product_type === 'simple'
+        ? `product_id.eq.${p.id}`
+        : variantIds.length > 0
+          ? `variant_id.in.(${variantIds.join(',')})`
+          : null // no variants exist yet for this product - nothing to count, skip the query entirely
+
+    let count = 0
+    if (orFilter) {
+      const result = await supabase.from('order_items').select('id', { count: 'exact', head: true }).or(orFilter)
+      count = result.count ?? 0
+    }
 
     rows.push({
       productId: p.id,

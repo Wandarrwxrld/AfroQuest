@@ -14,7 +14,7 @@ export default function ProductCarousel({ products }: { products: ProductWithDet
   const trackRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
   const [autoplay, setAutoplay] = useState(true)
-  const scrollTimeout = useRef<ReturnType<typeof setTimeout>>()
+  const scrollTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const scrollToIndex = useCallback((index: number) => {
     const track = trackRef.current
