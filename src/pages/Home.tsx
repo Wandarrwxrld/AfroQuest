@@ -42,60 +42,71 @@ export default function Home() {
   return (
     <div>
       {/* Hero */}
-      <section style={{ background: 'var(--color-dark)', color: 'white', overflow: 'hidden' }}>
-        <div
-          style={{
-            maxWidth: 1280,
-            margin: '0 auto',
-            padding: '3.5rem 1.5rem',
-            display: 'grid',
-            gridTemplateColumns: heroImage ? '1.1fr 1fr' : '1fr',
-            gap: '2rem',
-            alignItems: 'center',
-          }}
-        >
+      {/* Hero, per the animation reference doc's 3.1 spec: a large real
+          product photo occupies most of the hero, headline enters
+          smoothly (not abrupt), buttons have subtle hover movement.
+          Full-bleed background + overlay rather than a side-by-side
+          split, since a photo genuinely occupying "a major part of the
+          hero" is the explicit requirement. Uses the same real
+          best-seller photo as before - never a stock image. */}
+      <section
+        style={{
+          position: 'relative',
+          minHeight: 520,
+          display: 'flex',
+          alignItems: 'center',
+          overflow: 'hidden',
+          background: 'var(--color-dark)',
+        }}
+      >
+        {heroImage && (
+          <div style={{ position: 'absolute', inset: 0 }}>
+            <SmartImage src={heroImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'linear-gradient(90deg, rgba(30,27,38,0.94) 0%, rgba(30,27,38,0.78) 45%, rgba(30,27,38,0.3) 100%)',
+              }}
+            />
+          </div>
+        )}
+
+        <div style={{ position: 'relative', maxWidth: 1280, margin: '0 auto', padding: 'var(--space-64) var(--space-24)', width: '100%' }}>
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            style={{ maxWidth: 580 }}
           >
-            <h1 className="display" style={{ fontSize: 'clamp(2.1rem, 5vw, 3.5rem)', lineHeight: 1.08, margin: 0, maxWidth: 560 }}>
+            <div style={{ fontFamily: 'var(--font-editorial)', fontStyle: 'italic', fontSize: '1.05rem', color: 'var(--color-accent)', marginBottom: 'var(--space-12)' }}>
+              Built for the job site
+            </div>
+            <h1 className="display" style={{ fontSize: 'clamp(2.2rem, 5vw, 3.7rem)', lineHeight: 1.06, margin: 0, color: 'white' }}>
               Kitted out for whatever the site throws at you.
             </h1>
-            <p style={{ fontSize: '1.1rem', color: '#C9C7BE', maxWidth: 480, marginTop: '1rem' }}>
+            <p style={{ fontSize: '1.1rem', color: '#E5E3DC', maxWidth: 480, marginTop: 'var(--space-16)' }}>
               Safety footwear, workwear, and PPE for Zambia's industrial and mining workforce.
             </p>
-            <div style={{ display: 'flex', gap: '0.85rem', marginTop: '1.75rem', flexWrap: 'wrap' }}>
-              <Link to="/shop" className="btn" style={{ background: 'var(--color-primary)', color: 'white', padding: '0.9rem 1.75rem', fontSize: '1rem' }}>
-                Shop now
-              </Link>
-              {heroProduct?.category?.slug && (
-                <Link
-                  to={`/shop/${heroProduct.category.slug}`}
-                  className="btn btn-outline"
-                  style={{ borderColor: 'rgba(255,255,255,0.4)', color: 'white', padding: '0.9rem 1.75rem', fontSize: '1rem' }}
-                >
-                  Shop {heroProduct.category.name}
+            <div style={{ display: 'flex', gap: 'var(--space-12)', marginTop: 'var(--space-32)', flexWrap: 'wrap' }}>
+              <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
+                <Link to="/shop" className="btn" style={{ background: 'var(--color-primary)', color: 'white', padding: '0.9rem 1.75rem', fontSize: '1rem', display: 'inline-block' }}>
+                  Shop now
                 </Link>
+              </motion.div>
+              {heroProduct?.category?.slug && (
+                <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
+                  <Link
+                    to={`/shop/${heroProduct.category.slug}`}
+                    className="btn btn-outline"
+                    style={{ borderColor: 'rgba(255,255,255,0.5)', color: 'white', padding: '0.9rem 1.75rem', fontSize: '1rem', display: 'inline-block' }}
+                  >
+                    Shop {heroProduct.category.name}
+                  </Link>
+                </motion.div>
               )}
             </div>
           </motion.div>
-
-          {heroImage && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.94 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
-              style={{ position: 'relative', aspectRatio: '1', maxHeight: 420, justifySelf: 'center' }}
-            >
-              <div style={{ position: 'absolute', inset: '10%', background: 'radial-gradient(circle, rgba(245,100,25,0.35), transparent 70%)' }} />
-              <SmartImage
-                src={heroImage}
-                alt={heroProduct!.name}
-                style={{ position: 'relative', width: '100%', height: '100%', objectFit: 'contain' }}
-              />
-            </motion.div>
-          )}
         </div>
       </section>
 
