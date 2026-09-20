@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,400;1,500&display=swap');
 
 :root {
   --color-primary: #E5001C;
@@ -11,9 +11,38 @@
   --color-border: #E5E3DC;
   --color-success: #1D9E75;
   --color-danger: #A32D2D;
+
+  /* DESIGN.md's two-radius system: 4px for buttons/inputs/nav elements,
+     8px for cards/images, 9999px for pills/badges. Kept as new,
+     more-specific tokens rather than overwriting --radius/--radius-lg,
+     since existing components already reference those and a silent
+     global radius change would visually shift every page at once. */
+  --radius-sm: 4px;
+  --radius-card: 8px;
+  --radius-pill: 9999px;
   --radius: 8px;
   --radius-lg: 12px;
+
+  /* DESIGN.md's real 4px-base spacing scale */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-64: 64px;
+
   --font-display: 'Archivo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* DESIGN.md calls for an editorial italic serif on hero/full-bleed
+     panels specifically - Playfair Display is the exact substitute the
+     spec itself names for the unavailable "Exposure-style serif". Used
+     only where DESIGN.md specifies it (hero eyebrow + headline), not a
+     global heading replacement - Archivo stays the primary display font
+     everywhere else, matching the rest of the site already built. */
+  --font-editorial: 'Playfair Display', Georgia, 'Times New Roman', serif;
 }
 
 * { box-sizing: border-box; }
