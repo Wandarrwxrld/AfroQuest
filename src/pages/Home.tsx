@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { ShieldCheck, Truck, MessageCircle, Tag } from 'lucide-react'
 import { fetchActiveProducts, fetchBestSellingProducts, fetchHomeCategoryTiles, resolveProductImageUrl } from '../lib/products'
 import ProductCarousel from '../components/ProductCarousel'
+import FeaturedWorkwear from '../components/FeaturedWorkwear'
 import SmartImage from '../components/SmartImage'
 import { ProductGridSkeleton } from '../components/Skeleton'
 import type { ProductWithDetails } from '../types/database'
@@ -126,7 +127,9 @@ export default function Home() {
       )}
 
       <div className="site-main">
-        {/* Best sellers - ranked by real order counts, not a guess */}
+        {/* Best sellers - ranked by real order counts, not a guess.
+            Presented as the stepped hover-expand gallery per the
+            animation reference doc's Featured Workwear spec. */}
         <section style={{ marginTop: '2.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.25rem' }}>
             <h2 style={{ margin: 0 }}>Best sellers</h2>
@@ -139,7 +142,7 @@ export default function Home() {
               <p className="text-muted">Products are on the way - check back soon.</p>
             </div>
           ) : (
-            <ProductCarousel products={bestSellers} />
+            <FeaturedWorkwear products={bestSellers} />
           )}
         </section>
 
