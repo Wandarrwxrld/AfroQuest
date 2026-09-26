@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { ShieldCheck, Truck, MessageCircle, Tag } from 'lucide-react'
 import { fetchActiveProducts, fetchBestSellingProducts, fetchHomeCategoryTiles, resolveProductImageUrl } from '../lib/products'
 import ProductCarousel from '../components/ProductCarousel'
+import ShoppableRoom from '../components/ShoppableRoom'
 import SmartImage from '../components/SmartImage'
 import { ProductGridSkeleton } from '../components/Skeleton'
 import type { ProductWithDetails } from '../types/database'
@@ -85,7 +86,7 @@ export default function Home() {
             <h1 className="display" style={{ fontSize: 'clamp(2.2rem, 5vw, 3.7rem)', lineHeight: 1.06, margin: 0, color: 'white' }}>
               Kitted out for whatever the site throws at you.
             </h1>
-            <p style={{ fontSize: '1.1rem', color: '#E5E3DC', maxWidth: 480, marginTop: 'var(--space-16)' }}>
+            <p style={{ fontSize: '1.1rem', color: '#DCE1E6', maxWidth: 480, marginTop: 'var(--space-16)' }}>
               Safety footwear, workwear, and PPE for Zambia's industrial and mining workforce.
             </p>
             <div style={{ display: 'flex', gap: 'var(--space-12)', marginTop: 'var(--space-32)', flexWrap: 'wrap' }}>
@@ -157,6 +158,65 @@ export default function Home() {
             </div>
           </section>
         )}
+
+        {/* Shop the room - click a pin to see that zone's real
+            subcategories. Built from a styled product room image with
+            the New Balance-lookalike logo removed for trademark safety;
+            since it's a rendered scene rather than real photography,
+            pins link to categories rather than one exact product. */}
+        <section style={{ marginTop: '3.5rem' }}>
+          <h2 style={{ marginBottom: '1.25rem' }}>Shop the room</h2>
+          <ShoppableRoom />
+        </section>
+
+        {/* Brand moment - the intro animation as a full-bleed cinematic
+            background rather than a small boxed player, echoing the
+            hero's dark-overlay treatment so it reads as a deliberate
+            visual break in the page rather than an afterthought.
+            Muted + playsInline so mobile browsers allow the autoplay. */}
+        <section
+          style={{
+            position: 'relative',
+            marginTop: '3.5rem',
+            marginLeft: 'calc(50% - 50vw)',
+            marginRight: 'calc(50% - 50vw)',
+            minHeight: 420,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            background: 'var(--color-dark)',
+          }}
+        >
+          <video
+            src="/videos/afroquest-intro.mp4"
+            poster="/videos/afroquest-intro-poster.jpg"
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(180deg, rgba(36,35,49,0.55) 0%, rgba(36,35,49,0.75) 100%)',
+            }}
+          />
+          <div style={{ position: 'relative', textAlign: 'center', padding: '2rem 1.5rem', maxWidth: 640 }}>
+            <h2 style={{ color: 'white', fontSize: 'clamp(1.6rem, 4vw, 2.4rem)', margin: 0, lineHeight: 1.15 }}>
+              Real gear, tested where it matters — on the job.
+            </h2>
+            <Link
+              to="/shop"
+              className="btn"
+              style={{ display: 'inline-flex', marginTop: '1.5rem', background: 'var(--color-primary)', color: 'white', padding: '0.85rem 1.75rem' }}
+            >
+              Shop now
+            </Link>
+          </div>
+        </section>
 
         {/* New arrivals - genuinely the most recently listed active products */}
         <section style={{ marginTop: '3.5rem' }}>
