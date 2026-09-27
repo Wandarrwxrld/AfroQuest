@@ -1,0 +1,70 @@
+-- BLUEPRINT for whoever wires this up against the live database.
+-- I (this session's Claude) have no Supabase connection here, so this
+-- has not been run or verified against the real schema - please review
+-- against the actual current is_admin()/has_permission() function
+-- bodies before applying, rather than assuming this replacement is a
+-- perfect match for whatever extra logic they may already contain.
+--
+-- WHY THIS EXISTS: today, "deactivating" an admin (see disableAdmin in
+-- src/lib/adminAccounts.ts) works by demoting their role to 'customer'.
+-- That's a real bug, not just a rough edge: once demoted, the account
+-- disappears from the Admin Accounts list entirely (it only shows
+-- admin-tier roles), so there is currently NO way to reactivate them
+-- through the UI - the role change is effectively permanent. Adding a
+-- real is_active flag makes deactivation reversible and keeps the
+-- account visible (with an "Inactive" badge) so it can be reactivated.
+
+-- 1. Add the column. Existing rows default to active so no one gets
+--    silently locked out when this migration runs.
+alter table profiles
+  add column if not exists is_active boolean not null default true;
+
+-- 2. Update is_admin() and has_permission() so a deactivated admin's
+--    role no longer grants real access, even though the row itself and
+--    its role are preserved. THESE FUNCTION BODIES ARE INFERRED FROM
+--    THIS CODEBASE'S COMMENTS, NOT COPIED FROM THE LIVE DEFINITIONS -
+--    replace the WHERE/role-check logic below with whatever the real
+--    functions currently do, just with "and is_active" added.
+
+-- Example shape only - verify against the real function first:
+--
+-- create or replace function is_admin()
+-- returns boolean
+-- language sql
+-- security definer
+-- stable
+-- as $$
+--   select exists (
+--     select 1 from profiles
+--     where id = auth.uid()
+--       and role in ('admin','super_admin','order_admin','inventory_admin','content_admin','general_admin')
+--       and is_active = true
+--   );
+-- $$;
+--
+-- create or replace function has_permission(perm_key text)
+-- returns boolean
+-- language sql
+-- security definer
+-- stable
+-- as $$
+--   select exists (
+--     select 1 from profiles p
+--     left join admin_permissions ap on ap.admin_id = p.id and ap.permission = perm_key
+--     where p.id = auth.uid()
+--       and p.is_active = true
+--       and (
+--         p.role = 'super_admin'
+--         or (p.role = 'general_admin' and ap.admin_id is not null)
+--         or (p.role = 'inventory_admin' and perm_key = 'inventory')
+--         or (p.role = 'order_admin' and perm_key = 'orders')
+--         or (p.role = 'content_admin' and perm_key = 'products_content')
+--       )
+--   );
+-- $$;
+
+-- 3. No RLS policy changes should be needed beyond this if policies
+--    already gate access through is_admin()/has_permission() rather
+--    than checking profiles.role directly - but please grep for any
+--    policy that checks role in-line instead of via these functions,
+--    since those would bypass the new is_active check entirely.

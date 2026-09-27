@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AuthProvider } from './lib/AuthContext'
 import { CartProvider } from './lib/CartContext'
+import { WishlistProvider } from './lib/WishlistContext'
 import { RequireAuth, RequireAdmin, RequireSuperAdmin } from './components/RequireAuth'
 import Header from './components/Header'
 import Footer from './components/Footer'
@@ -98,11 +99,13 @@ export default function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <BrowserRouter>
-          <Header />
-          <AnimatedRoutes />
-          <ConditionalFooter />
-        </BrowserRouter>
+        <WishlistProvider>
+          <BrowserRouter>
+            <Header />
+            <AnimatedRoutes />
+            <ConditionalFooter />
+          </BrowserRouter>
+        </WishlistProvider>
       </CartProvider>
     </AuthProvider>
   )
