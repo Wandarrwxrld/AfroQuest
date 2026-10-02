@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { fetchProductBySlug, fetchSimpleStock, resolveProductImageUrl, computeStockStatus } from '../lib/products'
 import { useCart } from '../lib/CartContext'
+import { useFlyToCart } from '../lib/FlyToCartContext'
 import { useAuth } from '../lib/AuthContext'
 import { ProductDetailsSkeleton } from '../components/Skeleton'
 import type { ProductWithDetails, SimpleInventory } from '../types/database'
@@ -13,6 +14,7 @@ export default function ProductDetails() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { addVariantToCart, addSimpleToCart } = useCart()
+  const { triggerFlyToCart } = useFlyToCart()
 
   const [product, setProduct] = useState<ProductWithDetails | null>(null)
   const [simpleStock, setSimpleStock] = useState<SimpleInventory | null>(null)
@@ -89,7 +91,10 @@ export default function ProductDetails() {
     return v.size ?? '—'
   }
 
-  async function handleAddToCart() {
+  async function handleAddToCart(e: React.MouseEvent<HTMLButtonElement>) {
+    // currentTarget is only valid during the event dispatch itself - it
+    // is null after the first await below, so capture it up front.
+    const sourceEl = e.currentTarget
     if (!user) {
       navigate('/login')
       return
@@ -103,6 +108,7 @@ export default function ProductDetails() {
         await addSimpleToCart(product!.id)
       }
       setAddedMessage('Added to cart.')
+      triggerFlyToCart(imageUrl, sourceEl)
     } catch (e: any) {
       setError(e.message ?? 'Failed to add to cart')
     } finally {
