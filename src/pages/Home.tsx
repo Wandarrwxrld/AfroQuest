@@ -40,8 +40,25 @@ export default function Home() {
     ? resolveProductImageUrl([...heroProduct.images].sort((a, b) => a.display_order - b.display_order)[0]?.storage_path)
     : null
 
+  // Borrowed selectively from the A-dam style reference: a slim
+  // announcement strip pinned above the hero. Unlike A-dam's promo
+  // copy, this isn't a marketing claim - it's real category names
+  // pulled from the same data already fetched for the page, so it
+  // answers "do you sell what I'm looking for?" honestly instead of
+  // asserting something unverified (e.g. a shipping promise).
+  const stripCategories = categoryTiles.slice(0, 5).map((t) => t.category.name)
+
   return (
     <div>
+      {/* Availability strip */}
+      {stripCategories.length > 0 && (
+        <div style={{ background: 'var(--color-accent)', color: 'white', textAlign: 'center', padding: '0.5rem 1rem' }}>
+          <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, letterSpacing: '0.02em' }}>
+            In stock now: {stripCategories.join(' · ')}
+          </p>
+        </div>
+      )}
+
       {/* Hero */}
       {/* Hero, per the animation reference doc's 3.1 spec: a large real
           product photo occupies most of the hero, headline enters
@@ -83,7 +100,7 @@ export default function Home() {
             <div style={{ fontFamily: 'var(--font-editorial)', fontStyle: 'italic', fontSize: '1.05rem', color: 'var(--color-accent)', marginBottom: 'var(--space-12)' }}>
               Built for the job site
             </div>
-            <h1 className="display" style={{ fontSize: 'clamp(2.2rem, 5vw, 3.7rem)', lineHeight: 1.06, margin: 0, color: 'white' }}>
+            <h1 className="display" style={{ fontSize: 'clamp(2.4rem, 5.8vw, 4.1rem)', lineHeight: 1.02, margin: 0, color: 'white', fontWeight: 800 }}>
               Kitted out for whatever the site throws at you.
             </h1>
             <p style={{ fontSize: '1.1rem', color: '#DCE1E6', maxWidth: 480, marginTop: 'var(--space-16)' }}>
@@ -127,8 +144,36 @@ export default function Home() {
       )}
 
       <div className="site-main">
+        {/* Shop by category - moved ahead of Best Sellers: this is the
+            section that most directly answers "do you sell what I'm
+            looking for", so a first-time visitor should hit it before
+            anything curated. Tiles are bigger and bolder than before -
+            borrowed from the reference doc's "category card" pattern
+            (large photo, bold centered identity, no price/rating
+            clutter) rather than treating these like product cards. */}
+        {categoryTiles.length > 0 && (
+          <section style={{ marginTop: '2.5rem' }}>
+            <h2 style={{ marginBottom: '1.25rem' }}>Shop by category</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '1.5rem' }}>
+              {categoryTiles.map((tile) => (
+                <Link
+                  key={tile.category.id}
+                  to={`/shop/${tile.category.slug}`}
+                  className="category-tile"
+                  style={{ aspectRatio: '4 / 5' }}
+                >
+                  <SmartImage src={tile.imageUrl} alt={tile.category.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <span className="category-tile-label" style={{ fontSize: '1.3rem', left: '1.25rem', right: '1.25rem', bottom: '1.25rem' }}>
+                    {tile.category.name}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Best sellers - ranked by real order counts, not a guess */}
-        <section style={{ marginTop: '2.5rem' }}>
+        <section style={{ marginTop: '3.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.25rem' }}>
             <h2 style={{ margin: 0 }}>Best sellers</h2>
             <Link to="/shop" className="text-muted" style={{ fontSize: '0.9rem' }}>View all</Link>
@@ -143,21 +188,6 @@ export default function Home() {
             <ProductCarousel products={bestSellers} />
           )}
         </section>
-
-        {/* Shop by category - each tile's photo is a real product from that category */}
-        {categoryTiles.length > 0 && (
-          <section style={{ marginTop: '3.5rem' }}>
-            <h2 style={{ marginBottom: '1.25rem' }}>Shop by category</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1.25rem' }}>
-              {categoryTiles.map((tile) => (
-                <Link key={tile.category.id} to={`/shop/${tile.category.slug}`} className="category-tile">
-                  <SmartImage src={tile.imageUrl} alt={tile.category.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <span className="category-tile-label">{tile.category.name}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
 
         {/* Shop the room - click a pin to see that zone's real
             subcategories. Built from a styled product room image with
