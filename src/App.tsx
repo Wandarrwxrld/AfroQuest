@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { AuthProvider } from './lib/AuthContext'
 import { CartProvider } from './lib/CartContext'
 import { WishlistProvider } from './lib/WishlistContext'
+import { FlyToCartProvider } from './lib/FlyToCartContext'
 import { RequireAuth, RequireAdmin, RequireSuperAdmin } from './components/RequireAuth'
 import Header from './components/Header'
 import Footer from './components/Footer'
@@ -100,11 +101,13 @@ export default function App() {
     <AuthProvider>
       <CartProvider>
         <WishlistProvider>
+        <FlyToCartProvider>
           <BrowserRouter>
             <Header />
             <AnimatedRoutes />
             <ConditionalFooter />
           </BrowserRouter>
+        </FlyToCartProvider>
         </WishlistProvider>
       </CartProvider>
     </AuthProvider>

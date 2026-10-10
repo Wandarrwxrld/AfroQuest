@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { User, ShoppingCart, Heart, Search } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import { useCart } from '../lib/CartContext'
+import { useFlyToCart } from '../lib/FlyToCartContext'
+import { motion, useAnimationControls } from 'framer-motion'
 
 /** Icon-based nav matching the reference (person/cart/heart icons, not
  *  text labels), with the account icon opening a real dropdown of
@@ -11,6 +13,15 @@ import { useCart } from '../lib/CartContext'
 export default function Header() {
   const { user, isAdmin, signOut } = useAuth()
   const { itemCount } = useCart()
+  const { registerCartIcon, onCartPulse } = useFlyToCart()
+  const cartPulse = useAnimationControls()
+
+  // Pulse the cart icon at the exact moment a flying thumbnail lands.
+  useEffect(() => {
+    return onCartPulse(() => {
+      cartPulse.start({ scale: [1, 1.35, 1], transition: { duration: 0.35, ease: 'easeOut' } })
+    })
+  }, [onCartPulse, cartPulse])
   const navigate = useNavigate()
   const [accountOpen, setAccountOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -75,7 +86,9 @@ export default function Header() {
         </Link>
 
         <Link to="/cart" aria-label="Cart" style={{ color: 'inherit', display: 'flex', position: 'relative' }}>
-          <ShoppingCart size={22} strokeWidth={1.75} />
+          <motion.span ref={registerCartIcon} animate={cartPulse} style={{ display: 'flex' }}>
+            <ShoppingCart size={22} strokeWidth={1.75} />
+          </motion.span>
           {itemCount > 0 && (
             <span style={{ position: 'absolute', top: -6, right: -8, background: 'var(--color-primary)', color: 'white', borderRadius: '50%', width: 16, height: 16, fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {itemCount}

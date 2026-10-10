@@ -5,6 +5,7 @@ import { ShieldCheck, Truck, MessageCircle, Tag } from 'lucide-react'
 import { fetchActiveProducts, fetchBestSellingProducts, fetchHomeCategoryTiles, resolveProductImageUrl } from '../lib/products'
 import ProductCarousel from '../components/ProductCarousel'
 import ShoppableRoom from '../components/ShoppableRoom'
+import FeaturedWorkwear from '../components/FeaturedWorkwear'
 import SmartImage from '../components/SmartImage'
 import { ProductGridSkeleton } from '../components/Skeleton'
 import type { ProductWithDetails } from '../types/database'
@@ -185,7 +186,7 @@ export default function Home() {
               <p className="text-muted">Products are on the way - check back soon.</p>
             </div>
           ) : (
-            <ProductCarousel products={bestSellers} />
+            <FeaturedWorkwear products={bestSellers} />
           )}
         </section>
 
