@@ -71,6 +71,38 @@ export async function fetchHomeCategoryTiles(limit = 8): Promise<CategoryTile[]>
     .map((c) => ({ category: c, imageUrl: imageByCategory.get(c.id)! }))
 }
 
+/** Real text search across name/brand/description for the search bar
+ *  and /search page - not a fuzzy or ranked search, just a straightforward
+ *  case-insensitive substring match across the fields a customer is
+ *  actually likely to type (product name, brand, or a word from the
+ *  description), restricted to active products like the rest of the
+ *  storefront. */
+export async function searchProducts(query: string): Promise<ProductWithDetails[]> {
+  const trimmed = query.trim()
+  if (!trimmed) return []
+  // Strip characters that are structurally meaningful to PostgREST's
+  // .or() filter syntax (commas separate conditions, parens group them)
+  // so a search term containing them can't accidentally reshape the
+  // query instead of just being treated as literal text to match.
+  const safe = trimmed.replace(/[,()]/g, ' ').trim()
+  if (!safe) return []
+
+  const { data, error } = await supabase
+    .from('products')
+    .select(
+      `*,
+      category:categories(*),
+      images:product_images(*),
+      variants:product_variants(*, inventory(*))`
+    )
+    .eq('is_active', true)
+    .or(`name.ilike.%${safe}%,brand.ilike.%${safe}%,description.ilike.%${safe}%`)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as unknown as ProductWithDetails[]
+}
+
 export async function fetchProductBySlug(slug: string): Promise<ProductWithDetails> {
   const { data, error } = await supabase
     .from('products')

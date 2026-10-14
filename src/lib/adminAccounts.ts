@@ -11,19 +11,21 @@ export interface AdminAccountRow {
   permissions: PermissionKey[]
 }
 
-/** Lists every admin-tier account (not customers) with their granted
- *  permissions attached - the real "create, edit, disable and manage
- *  administrator accounts and roles" view the roles document requires
- *  for super_admin. RLS on profiles already restricts what a non-
- *  super_admin caller could see here (role change is super_admin-only),
- *  but this whole page is additionally gated behind isSuperAdmin in
- *  the route itself. */
-export async function fetchAdminAccounts(): Promise<AdminAccountRow[]> {
-  const ADMIN_ROLES: UserRole[] = ['admin', 'super_admin', 'order_admin', 'inventory_admin', 'content_admin', 'general_admin']
+const ADMIN_ROLES: UserRole[] = ['admin', 'super_admin', 'order_admin', 'inventory_admin', 'content_admin', 'general_admin']
 
+/** Lists every admin-tier account (not customers) with their granted
+ *  permissions attached, including deactivated ones - a deactivated
+ *  admin keeps their role now (see deactivateAdmin) instead of being
+ *  demoted to 'customer', specifically so they don't vanish from this
+ *  list with no way to reactivate them.
+ *
+ *  Requires the `is_active` column on profiles - see
+ *  supabase/migrations/blueprint_admin_is_active.sql. Until that's
+ *  applied, this falls back to treating everyone as active. */
+export async function fetchAdminAccounts(): Promise<AdminAccountRow[]> {
   const { data: profiles, error } = await (supabase as any)
     .from('profiles')
-    .select('id, full_name, role')
+    .select('id, full_name, role, is_active')
     .in('role', ADMIN_ROLES)
   if (error) throw error
 
@@ -35,11 +37,8 @@ export async function fetchAdminAccounts(): Promise<AdminAccountRow[]> {
     permsByAdmin.set(row.admin_id, list)
   }
 
-  // Email lives in auth.users, not profiles - resolve via the admin API
-  // is not available client-side, so this reads from a view/RPC instead.
-  // Simplest real approach without a service-role key on the client:
-  // profiles.full_name is what's shown primarily; email is fetched only
-  // where a companion RPC exists (see get_admin_emails below).
+  // Email lives in auth.users, not profiles - resolved via a companion
+  // RPC since the client can't call the admin API directly.
   const { data: emailRows } = await (supabase as any).rpc('get_admin_emails', { p_admin_ids: (profiles ?? []).map((p: any) => p.id) })
   const emailByAdmin = new Map<string, string>((emailRows ?? []).map((r: any) => [r.id, r.email]))
 
@@ -48,7 +47,7 @@ export async function fetchAdminAccounts(): Promise<AdminAccountRow[]> {
     fullName: p.full_name,
     email: emailByAdmin.get(p.id) ?? null,
     role: p.role,
-    isActive: true, // disabling is implemented via role demotion to 'customer' - see disableAdmin below
+    isActive: p.is_active ?? true,
     permissions: permsByAdmin.get(p.id) ?? [],
   }))
 }
@@ -71,10 +70,28 @@ export async function revokePermission(adminId: string, permission: PermissionKe
   if (error) throw error
 }
 
-/** "Disable" an admin account by demoting them to 'customer' - removes
- *  every admin-tier privilege immediately via RLS (is_admin()/has_permission()
- *  both key off profiles.role), without deleting the account or its
- *  order/audit history. Reversible by a super_admin re-assigning a role. */
-export async function disableAdmin(adminId: string): Promise<void> {
-  await setAdminRole(adminId, 'customer')
+/** Deactivates an admin account: strips access immediately (is_admin()/
+ *  has_permission() should check is_active per the migration blueprint)
+ *  while keeping their role and history intact - reversible via
+ *  activateAdmin, unlike the old role-demotion approach. */
+export async function deactivateAdmin(adminId: string): Promise<void> {
+  const { error } = await (supabase as any).from('profiles').update({ is_active: false }).eq('id', adminId)
+  if (error) throw error
+}
+
+export async function activateAdmin(adminId: string): Promise<void> {
+  const { error } = await (supabase as any).from('profiles').update({ is_active: true }).eq('id', adminId)
+  if (error) throw error
+}
+
+/** Permanently deletes an admin's account (auth user + cascading rows).
+ *  Goes through the delete-admin-account edge function, which re-checks
+ *  server-side that the caller is really a super_admin rather than
+ *  trusting anything the client claims - see that function's comments. */
+export async function terminateAdmin(adminId: string): Promise<void> {
+  const { error } = await supabase.functions.invoke('delete-admin-account', {
+    method: 'POST',
+    body: { targetUserId: adminId },
+  })
+  if (error) throw error
 }

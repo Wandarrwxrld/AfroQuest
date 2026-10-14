@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import type { ProductWithDetails } from '../types/database'
 import { resolveProductImageUrl, computeStockStatus } from '../lib/products'
 import SmartImage from './SmartImage'
+import WishlistButton from './WishlistButton'
 
 export default function ProductCard({ product }: { product: ProductWithDetails }) {
   const coverImage = [...product.images].sort((a, b) => a.display_order - b.display_order)[0]
@@ -9,7 +10,10 @@ export default function ProductCard({ product }: { product: ProductWithDetails }
   const stock = computeStockStatus(product)
 
   return (
-    <Link to={`/product/${product.slug}`} className="card" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
+    <Link to={`/product/${product.slug}`} className="card" style={{ textDecoration: 'none', color: 'inherit', display: 'block', position: 'relative' }}>
+      <div style={{ position: 'absolute', top: '0.6rem', right: '0.6rem', zIndex: 1 }}>
+        <WishlistButton productId={product.id} />
+      </div>
       <div style={{ aspectRatio: '1', background: 'white', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
         <SmartImage src={imageUrl} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
       </div>

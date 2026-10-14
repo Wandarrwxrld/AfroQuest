@@ -5,7 +5,9 @@ import {
   setAdminRole,
   grantPermission,
   revokePermission,
-  disableAdmin,
+  activateAdmin,
+  deactivateAdmin,
+  terminateAdmin,
   type AdminAccountRow,
 } from '../lib/adminAccounts'
 import type { UserRole } from '../types/database'
@@ -82,15 +84,33 @@ export default function AdminAccounts() {
     }
   }
 
-  async function handleDisable(adminId: string, name: string) {
-    if (!confirm(`Disable admin access for ${name}? This can be reversed by re-assigning a role.`)) return
-    setBusyId(adminId)
+  async function handleToggleActive(admin: AdminAccountRow) {
+    const verb = admin.isActive ? 'Deactivate' : 'Reactivate'
+    if (!confirm(`${verb} ${admin.fullName ?? admin.email ?? 'this admin'}? ${admin.isActive ? 'They will immediately lose admin access, but the account and its history stay intact and this can be reversed.' : 'They will regain the admin access their role grants.'}`)) return
+    setBusyId(admin.id)
     setError(null)
     try {
-      await disableAdmin(adminId)
+      if (admin.isActive) await deactivateAdmin(admin.id)
+      else await activateAdmin(admin.id)
       await refresh()
     } catch (e: any) {
-      setError(e.message ?? 'Failed to disable admin')
+      setError(e.message ?? 'Failed to update account status')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function handleTerminate(admin: AdminAccountRow) {
+    const name = admin.fullName ?? admin.email ?? 'this admin'
+    if (!confirm(`Permanently delete ${name}'s account? This cannot be undone - their login and account history will be gone for good. Deactivating instead is reversible; this is not.`)) return
+    if (!confirm(`Really sure? Type-to-confirm isn't wired up here, so this second prompt is the only safety check: permanently delete ${name}?`)) return
+    setBusyId(admin.id)
+    setError(null)
+    try {
+      await terminateAdmin(admin.id)
+      await refresh()
+    } catch (e: any) {
+      setError(e.message ?? 'Failed to terminate account')
     } finally {
       setBusyId(null)
     }
@@ -117,7 +137,14 @@ export default function AdminAccounts() {
             <div key={admin.id} className="card" style={{ padding: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <div style={{ fontWeight: 600 }}>{admin.fullName ?? 'Unnamed admin'}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontWeight: 600 }}>{admin.fullName ?? 'Unnamed admin'}</span>
+                    {!admin.isActive && (
+                      <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: 999, background: '#FDEBE1', color: '#B95C1E' }}>
+                        Inactive
+                      </span>
+                    )}
+                  </div>
                   <div className="text-muted" style={{ fontSize: '0.85rem' }}>{admin.email ?? admin.id}</div>
                 </div>
                 <select
@@ -154,14 +181,24 @@ export default function AdminAccounts() {
                 </div>
               )}
 
-              <div style={{ marginTop: '1rem' }}>
+              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
                 <button
                   className="btn btn-outline"
                   disabled={busyId === admin.id}
-                  onClick={() => handleDisable(admin.id, admin.fullName ?? admin.email ?? 'this admin')}
-                  style={{ color: 'var(--color-danger)', borderColor: 'var(--color-danger)', fontSize: '0.85rem' }}
+                  onClick={() => handleToggleActive(admin)}
+                  style={admin.isActive
+                    ? { color: 'var(--color-danger)', borderColor: 'var(--color-danger)', fontSize: '0.85rem' }
+                    : { color: 'var(--color-success)', borderColor: 'var(--color-success)', fontSize: '0.85rem' }}
                 >
-                  Disable admin access
+                  {admin.isActive ? 'Deactivate' : 'Reactivate'}
+                </button>
+                <button
+                  className="btn btn-outline"
+                  disabled={busyId === admin.id}
+                  onClick={() => handleTerminate(admin)}
+                  style={{ color: 'white', background: 'var(--color-danger)', borderColor: 'var(--color-danger)', fontSize: '0.85rem' }}
+                >
+                  Terminate account
                 </button>
               </div>
             </div>

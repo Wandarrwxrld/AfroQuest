@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { User, ShoppingCart, Heart } from 'lucide-react'
+import { User, ShoppingCart, Heart, Search } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import { useCart } from '../lib/CartContext'
 import { useFlyToCart } from '../lib/FlyToCartContext'
@@ -25,6 +25,14 @@ export default function Header() {
   const navigate = useNavigate()
   const [accountOpen, setAccountOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmed = searchTerm.trim()
+    if (!trimmed) return
+    navigate(`/search?q=${encodeURIComponent(trimmed)}`)
+  }
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -41,12 +49,35 @@ export default function Header() {
   }
 
   return (
-    <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.5rem', borderBottom: '1px solid #e5e5e5' }}>
-      <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+    <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.5rem', padding: '1rem 1.5rem', borderBottom: '1px solid #e5e5e5' }}>
+      <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}>
         <img src="/logo.png" alt="AfroQuest" style={{ height: 34 }} />
       </Link>
 
-      <nav style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+      <form
+        onSubmit={handleSearchSubmit}
+        role="search"
+        style={{ flex: '1 1 auto', maxWidth: 420, display: 'flex', alignItems: 'center', position: 'relative' }}
+      >
+        <Search size={16} style={{ position: 'absolute', left: 12, color: 'var(--color-text-muted)', pointerEvents: 'none' }} />
+        <input
+          type="search"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search products..."
+          aria-label="Search products"
+          style={{
+            width: '100%',
+            padding: '0.55rem 0.9rem 0.55rem 2.1rem',
+            borderRadius: 999,
+            border: '1.5px solid var(--color-border)',
+            fontSize: '0.9rem',
+            background: 'var(--color-bg)',
+          }}
+        />
+      </form>
+
+      <nav style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexShrink: 0 }}>
         <Link to="/shop" style={{ fontSize: '0.9rem', textDecoration: 'none', color: 'inherit' }}>Shop</Link>
         {isAdmin && <Link to="/admin" style={{ fontSize: '0.9rem', textDecoration: 'none', color: 'inherit' }}>Admin</Link>}
 

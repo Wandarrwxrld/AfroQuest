@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { ShieldCheck, Truck, MessageCircle, Tag } from 'lucide-react'
 import { fetchActiveProducts, fetchBestSellingProducts, fetchHomeCategoryTiles, resolveProductImageUrl } from '../lib/products'
 import ProductCarousel from '../components/ProductCarousel'
+import ShoppableRoom from '../components/ShoppableRoom'
 import FeaturedWorkwear from '../components/FeaturedWorkwear'
 import SmartImage from '../components/SmartImage'
 import { ProductGridSkeleton } from '../components/Skeleton'
@@ -40,8 +41,25 @@ export default function Home() {
     ? resolveProductImageUrl([...heroProduct.images].sort((a, b) => a.display_order - b.display_order)[0]?.storage_path)
     : null
 
+  // Borrowed selectively from the A-dam style reference: a slim
+  // announcement strip pinned above the hero. Unlike A-dam's promo
+  // copy, this isn't a marketing claim - it's real category names
+  // pulled from the same data already fetched for the page, so it
+  // answers "do you sell what I'm looking for?" honestly instead of
+  // asserting something unverified (e.g. a shipping promise).
+  const stripCategories = categoryTiles.slice(0, 5).map((t) => t.category.name)
+
   return (
     <div>
+      {/* Availability strip */}
+      {stripCategories.length > 0 && (
+        <div style={{ background: 'var(--color-accent)', color: 'white', textAlign: 'center', padding: '0.5rem 1rem' }}>
+          <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, letterSpacing: '0.02em' }}>
+            In stock now: {stripCategories.join(' · ')}
+          </p>
+        </div>
+      )}
+
       {/* Hero */}
       {/* Hero, per the animation reference doc's 3.1 spec: a large real
           product photo occupies most of the hero, headline enters
@@ -83,10 +101,10 @@ export default function Home() {
             <div style={{ fontFamily: 'var(--font-editorial)', fontStyle: 'italic', fontSize: '1.05rem', color: 'var(--color-accent)', marginBottom: 'var(--space-12)' }}>
               Built for the job site
             </div>
-            <h1 className="display" style={{ fontSize: 'clamp(2.2rem, 5vw, 3.7rem)', lineHeight: 1.06, margin: 0, color: 'white' }}>
+            <h1 className="display" style={{ fontSize: 'clamp(2.4rem, 5.8vw, 4.1rem)', lineHeight: 1.02, margin: 0, color: 'white', fontWeight: 800 }}>
               Kitted out for whatever the site throws at you.
             </h1>
-            <p style={{ fontSize: '1.1rem', color: '#E5E3DC', maxWidth: 480, marginTop: 'var(--space-16)' }}>
+            <p style={{ fontSize: '1.1rem', color: '#DCE1E6', maxWidth: 480, marginTop: 'var(--space-16)' }}>
               Safety footwear, workwear, and PPE for Zambia's industrial and mining workforce.
             </p>
             <div style={{ display: 'flex', gap: 'var(--space-12)', marginTop: 'var(--space-32)', flexWrap: 'wrap' }}>
@@ -127,10 +145,36 @@ export default function Home() {
       )}
 
       <div className="site-main">
-        {/* Best sellers - ranked by real order counts, not a guess.
-            Presented as the stepped hover-expand gallery per the
-            animation reference doc's Featured Workwear spec. */}
-        <section style={{ marginTop: '2.5rem' }}>
+        {/* Shop by category - moved ahead of Best Sellers: this is the
+            section that most directly answers "do you sell what I'm
+            looking for", so a first-time visitor should hit it before
+            anything curated. Tiles are bigger and bolder than before -
+            borrowed from the reference doc's "category card" pattern
+            (large photo, bold centered identity, no price/rating
+            clutter) rather than treating these like product cards. */}
+        {categoryTiles.length > 0 && (
+          <section style={{ marginTop: '2.5rem' }}>
+            <h2 style={{ marginBottom: '1.25rem' }}>Shop by category</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '1.5rem' }}>
+              {categoryTiles.map((tile) => (
+                <Link
+                  key={tile.category.id}
+                  to={`/shop/${tile.category.slug}`}
+                  className="category-tile"
+                  style={{ aspectRatio: '4 / 5' }}
+                >
+                  <SmartImage src={tile.imageUrl} alt={tile.category.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <span className="category-tile-label" style={{ fontSize: '1.3rem', left: '1.25rem', right: '1.25rem', bottom: '1.25rem' }}>
+                    {tile.category.name}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Best sellers - ranked by real order counts, not a guess */}
+        <section style={{ marginTop: '3.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '1.25rem' }}>
             <h2 style={{ margin: 0 }}>Best sellers</h2>
             <Link to="/shop" className="text-muted" style={{ fontSize: '0.9rem' }}>View all</Link>
@@ -146,20 +190,64 @@ export default function Home() {
           )}
         </section>
 
-        {/* Shop by category - each tile's photo is a real product from that category */}
-        {categoryTiles.length > 0 && (
-          <section style={{ marginTop: '3.5rem' }}>
-            <h2 style={{ marginBottom: '1.25rem' }}>Shop by category</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1.25rem' }}>
-              {categoryTiles.map((tile) => (
-                <Link key={tile.category.id} to={`/shop/${tile.category.slug}`} className="category-tile">
-                  <SmartImage src={tile.imageUrl} alt={tile.category.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <span className="category-tile-label">{tile.category.name}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
+        {/* Shop the room - click a pin to see that zone's real
+            subcategories. Built from a styled product room image with
+            the New Balance-lookalike logo removed for trademark safety;
+            since it's a rendered scene rather than real photography,
+            pins link to categories rather than one exact product. */}
+        <section style={{ marginTop: '3.5rem' }}>
+          <h2 style={{ marginBottom: '1.25rem' }}>Shop the room</h2>
+          <ShoppableRoom />
+        </section>
+
+        {/* Brand moment - the intro animation as a full-bleed cinematic
+            background rather than a small boxed player, echoing the
+            hero's dark-overlay treatment so it reads as a deliberate
+            visual break in the page rather than an afterthought.
+            Muted + playsInline so mobile browsers allow the autoplay. */}
+        <section
+          style={{
+            position: 'relative',
+            marginTop: '3.5rem',
+            marginLeft: 'calc(50% - 50vw)',
+            marginRight: 'calc(50% - 50vw)',
+            minHeight: 420,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            background: 'var(--color-dark)',
+          }}
+        >
+          <video
+            src="/videos/afroquest-intro.mp4"
+            poster="/videos/afroquest-intro-poster.jpg"
+            autoPlay
+            loop
+            muted
+            playsInline
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(180deg, rgba(36,35,49,0.55) 0%, rgba(36,35,49,0.75) 100%)',
+            }}
+          />
+          <div style={{ position: 'relative', textAlign: 'center', padding: '2rem 1.5rem', maxWidth: 640 }}>
+            <h2 style={{ color: 'white', fontSize: 'clamp(1.6rem, 4vw, 2.4rem)', margin: 0, lineHeight: 1.15 }}>
+              Real gear, tested where it matters — on the job.
+            </h2>
+            <Link
+              to="/shop"
+              className="btn"
+              style={{ display: 'inline-flex', marginTop: '1.5rem', background: 'var(--color-primary)', color: 'white', padding: '0.85rem 1.75rem' }}
+            >
+              Shop now
+            </Link>
+          </div>
+        </section>
 
         {/* New arrivals - genuinely the most recently listed active products */}
         <section style={{ marginTop: '3.5rem' }}>

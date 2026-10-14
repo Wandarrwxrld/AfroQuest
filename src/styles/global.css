@@ -1,16 +1,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,400;1,500&display=swap');
 
 :root {
-  --color-primary: #E5001C;
-  --color-primary-dark: #C91B31;
-  --color-accent: #F56419;
-  --color-dark: #1E1B26;
-  --color-bg: #FAFAF8;
+  /* Refreshed brand palette from the "afroquest" Coolors set, merged
+     with the existing tokens rather than replacing them outright -
+     --color-dark is nearly identical to the old value so it's a
+     straight swap; --color-primary/--color-accent take the new
+     red-orange and blue; existing functional colors (success/danger)
+     are untouched since those aren't brand identity. */
+  --color-primary: #FF4000;
+  --color-primary-dark: #D93500;
+  --color-accent: #4A8FE7;
+  --color-dark: #242331;
+  --color-bg: #FDFFFF;
   --color-text: #1A1A1A;
-  --color-text-muted: #6B6B6B;
-  --color-border: #E5E3DC;
+  --color-text-muted: #6B7280;
+  --color-border: #DDE1E5;
   --color-success: #1D9E75;
   --color-danger: #A32D2D;
+  --color-slate: #738290;
 
   /* DESIGN.md's two-radius system: 4px for buttons/inputs/nav elements,
      8px for cards/images, 9999px for pills/badges. Kept as new,
@@ -166,6 +173,39 @@ a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid 
 @media (prefers-reduced-motion: reduce) {
   .category-tile img { transition: none; }
   .category-tile:hover img { transform: none; }
+}
+
+/* Shoppable room hotspot dots - small, soft, translucent white with a
+   gentle pulse ring, not a heavy pin icon */
+.room-dot-wrap { position: absolute; transform: translate(-50%, -50%); }
+.room-dot-btn { position: relative; width: 30px; height: 30px; border: none; background: transparent; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; }
+.room-dot-pulse {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.5);
+  animation: room-dot-pulse 2.4s ease-out infinite;
+}
+.room-dot-core {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  border: 1.5px solid rgba(255,255,255,0.85);
+  box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.room-dot-wrap:hover .room-dot-core { transform: scale(1.25); background: rgba(255,255,255,0.8); }
+@keyframes room-dot-pulse {
+  0% { transform: scale(0.5); opacity: 0.65; }
+  70% { opacity: 0; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .room-dot-pulse { animation: none; opacity: 0; }
 }
 
 /* Card hover - subtle lift, not a generic shadow-everywhere default */
